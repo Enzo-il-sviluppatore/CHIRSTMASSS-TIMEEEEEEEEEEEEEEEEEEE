@@ -6,7 +6,7 @@
   $("welcome-message").textContent = greetings[Math.floor(Math.random()*greetings.length)];
   window.addEventListener("load",()=>setTimeout(()=>$("welcome").classList.add("hide"),1050));
   const configured = cfg.firebaseConfig && cfg.firebaseConfig.apiKey && !cfg.firebaseConfig.apiKey.includes("YOUR_") && cfg.firebaseConfig.projectId && !cfg.firebaseConfig.projectId.includes("YOUR_");
-  let auth=null, db=null, currentUser=null, gifts=[], statuses={}, purchases={}, selectedGift=null, selectedKind="purchase", toastTimer;
+  let auth=null, db=null, currentUser=null, gifts=[], statuses={}, purchases={}, selectedGift=null, selectedKind="purchase", toastTimer, draggedGiftId=null;
   if(configured && window.firebase) {
     try { firebase.initializeApp(cfg.firebaseConfig); auth=firebase.auth(); db=firebase.firestore(); } catch(e) { console.error(e); }
   }
@@ -14,8 +14,9 @@
   const money=n=>new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format(Number(n)||0);
   function toast(msg){const el=$("toast");el.textContent=msg;el.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),3500)}
   function isAdmin(){return !!(currentUser && currentUser.email && currentUser.email.toLowerCase()===String(cfg.adminEmail||"").toLowerCase() && currentUser.emailVerified && currentUser.providerData.some(p=>p.providerId==="google.com"))}
-  function setCountdown(){const now=new Date(),year=now.getMonth()===11&&now.getDate()>25?now.getFullYear()+1:now.getFullYear(),days=Math.ceil((new Date(year,11,25)-now)/86400000);$("countdown").textContent=days===0?"Merry Christmas! 🎄":days+" days until Christmas 🎁"}
-  setCountdown();
+  function setCountdown(){const now=new Date(),year=now.getMonth()===11&&now.getDate()>25?now.getFullYear()+1:now.getFullYear(),ms=Math.max(0,new Date(year,11,25)-now),days=Math.floor(ms/86400000),hours=Math.floor(ms%86400000/3600000),minutes=Math.floor(ms%3600000/60000),seconds=Math.floor(ms%60000/1000);$("countdown").textContent=ms===0?"Merry Christmas! 🎄":days+" days · "+hours+"h "+minutes+"m "+seconds+"s until Christmas 🎁"}
+  setCountdown();setInterval(setCountdown,1000);
+  $("snow-toggle").addEventListener("click",()=>{const off=document.querySelector(".snow-layer").classList.toggle("snow-off");$("snow-toggle").innerHTML=off?"❄ <span>Snow off</span>":"❄ <span>Snow</span>"});
   async function ensureGoogleSignIn(){
     if(!auth)throw new Error("Firebase is not configured yet.");
     if(isAdmin())return currentUser;
@@ -42,34 +43,37 @@
   }
   function getStatus(g){const s=statuses[g.id];if(!s)return{status:"available"};const expiry=stampDate(s.expiresAt);if(s.status==="held"&&expiry&&expiry<=new Date())return{status:"available"};return s}
   function render(){
-    const term=$("search").value.trim().toLowerCase(),sort=$("sort").value,min=$("min-price").value,max=$("max-price").value,supplier=$("supplier-filter").value;
-    let list=gifts.filter(g=>(g.name+" "+(g.description||"")+" "+(g.supplier||"")).toLowerCase().includes(term)&&(!min||Number(g.price)>=Number(min))&&(!max||Number(g.price)<=Number(max))&&(!supplier||g.supplier===supplier));
+    const term=$("search").value.trim().toLowerCase(),sort=$("sort").value,min=$("min-price").value,max=$("max-price").value,supplier=$("supplier-filter").value,category=$("category-filter").value;
+    let list=gifts.filter(g=>(g.name+" "+(g.description||"")+" "+(g.supplier||"")+" "+(g.category||"Other")).toLowerCase().includes(term)&&(!min||Number(g.price)>=Number(min))&&(!max||Number(g.price)<=Number(max))&&(!supplier||g.supplier===supplier)&&(!category||(g.category||"Other")===category));
     if(sort==="price-asc")list.sort((a,b)=>Number(a.price)-Number(b.price));
     if(sort==="price-desc")list.sort((a,b)=>Number(b.price)-Number(a.price));
     if(sort==="name")list.sort((a,b)=>a.name.localeCompare(b.name));
     if(sort==="supplier")list.sort((a,b)=>(a.supplier||"").localeCompare(b.supplier||""));
+    if(sort==="featured")list.sort((a,b)=>(Number(a.order)||0)-(Number(b.order)||0));
     $("gift-count").textContent=list.length+" "+(list.length===1?"gift":"gifts");
     const stores=[...new Set(gifts.map(g=>g.supplier).filter(Boolean))].sort(),current=$("supplier-filter").value;
     $("supplier-filter").innerHTML='<option value="">All stores</option>'+stores.map(s=>'<option value="'+escapeHTML(s)+'">'+escapeHTML(s)+'</option>').join("");
     $("supplier-filter").value=stores.includes(current)?current:"";
+    const cats=[...new Set(gifts.map(g=>g.category||"Other"))].sort(),chosen=$("category-filter").value;
+    $("category-filter").innerHTML='<option value="">All categories</option>'+cats.map(v=>'<option value="'+escapeHTML(v)+'">'+escapeHTML(v)+'</option>').join("");$("category-filter").value=cats.includes(chosen)?chosen:"";
     if(!list.length){$("wishlist-grid").innerHTML='<div class="empty-state"><span>🎁</span><h3>No gifts found just yet</h3><p>Try changing your search or filters.</p></div>';return}
     $("wishlist-grid").innerHTML=list.map(g=>{
       const st=getStatus(g),held=st.status==="held",bought=st.status==="bought",label=bought?"Bought":held?"On hold":"Available";
       const ownsHold=held&&currentUser&&st.ownerUid===currentUser.uid;
       const image=g.imageUrl?'<img src="'+escapeHTML(g.imageUrl)+'" alt="'+escapeHTML(g.name)+'" loading="lazy" onerror="this.remove()">':'<span class="gift-emoji">🎁</span>';
       const boughtButton='<button class="maybe" data-action="bought" data-id="'+g.id+'" '+(bought?"disabled":"")+'>'+(bought?"Bought":"✓ Bought")+'</button>';
-      return '<article class="gift-card" data-gift-card="'+g.id+'" tabindex="0" role="button" aria-label="View details for '+escapeHTML(g.name)+'"><div class="gift-image">'+image+'</div><div class="gift-card-body"><div class="gift-meta"><span class="supplier">'+escapeHTML(g.supplier||"Gift idea")+'</span><span class="status '+(bought?"bought":held?"held":"available")+'">'+label+'</span></div><h3>'+escapeHTML(g.name)+'</h3><div class="gift-bottom"><strong class="gift-price">'+money(g.price)+'</strong></div><div class="gift-actions">'+boughtButton+'<button class="maybe" data-action="maybe" data-id="'+g.id+'" '+(held||bought?"disabled":"")+'>'+(held?"Reserved":bought?"Bought":"Maybe")+'</button></div>'+(held?'<p class="hold-info">Someone is thinking of buying this item · '+timeLeft(st.expiresAt)+'</p>':"")+'</div></article>';
+      return '<article class="gift-card" data-gift-card="'+g.id+'" tabindex="0" role="button" aria-label="View details for '+escapeHTML(g.name)+'"><div class="gift-image">'+image+'</div><div class="gift-card-body"><div class="gift-meta"><span class="supplier">'+escapeHTML(g.category||"Other")+' · '+escapeHTML(g.supplier||"Gift idea")+'</span><span class="status '+(bought?"bought":held?"held":"available")+'">'+label+'</span></div><h3>'+escapeHTML(g.name)+'</h3><div class="gift-bottom"><strong class="gift-price">'+money(g.price)+'</strong></div><div class="gift-actions">'+boughtButton+'<button class="maybe" data-action="maybe" data-id="'+g.id+'" '+(held||bought?"disabled":"")+'>'+(held?"Reserved":bought?"Bought":"Maybe")+'</button></div>'+(held?'<p class="hold-info">Someone is thinking of buying this item · '+timeLeft(st.expiresAt)+'</p>':"")+'</div></article>';
     }).join("");
   }
   function timeLeft(value){const date=stampDate(value);if(!date)return"24-hour hold";const ms=Math.max(0,date-Date.now()),h=Math.floor(ms/3600000),m=Math.floor(ms%3600000/60000);return h+"h "+m+"m left"}
-  ["search","sort","min-price","max-price","supplier-filter"].forEach(id=>$(id).addEventListener(id==="search"?"input":"change",render));
-  $("clear-filters").addEventListener("click",()=>{$("search").value="";$("sort").value="featured";$("min-price").value="";$("max-price").value="";$("supplier-filter").value="";render()});
+  ["search","sort","min-price","max-price","supplier-filter","category-filter"].forEach(id=>$(id).addEventListener(id==="search"?"input":"change",render));
+  $("clear-filters").addEventListener("click",()=>{$("search").value="";$("sort").value="featured";$("min-price").value="";$("max-price").value="";$("supplier-filter").value="";$("category-filter").value="";render()});
   function openGiftDetails(g){
     if(!g)return;
     const image=g.imageUrl?'<img class="details-image" src="'+escapeHTML(g.imageUrl)+'" alt="'+escapeHTML(g.name)+'" onerror="this.style.display=\'none\'">':"";
     const st=getStatus(g),bought=st.status==="bought",held=st.status==="held";
     $("gift-details-content").innerHTML=image+'<p class="eyebrow">'+escapeHTML(g.supplier||"Gift idea")+'</p><h2>'+escapeHTML(g.name)+'</h2><p class="details-price">'+money(g.price)+'</p><p class="details-description">'+escapeHTML(g.description||"No description added.")+'</p>'+(g.inspiration?'<div class="details-extra"><h3>More information</h3><p>'+escapeHTML(g.inspiration)+'</p></div>':"")+'<p class="details-status">Status: '+(bought?"Bought":held?"On hold":"Available")+'</p>'+(g.url?'<a class="primary-button details-link" href="'+escapeHTML(g.url)+'" target="_blank" rel="noopener noreferrer">View product at '+escapeHTML(g.supplier||"the store")+' ↗</a>':"");
-    $("gift-details-dialog").showModal();
+    $("gift-details-dialog").classList.remove("gift-reveal");void $("gift-details-dialog").offsetWidth;$("gift-details-dialog").classList.add("gift-reveal");$("gift-details-dialog").showModal();
   }
   $("gift-details-close").addEventListener("click",()=>$("gift-details-dialog").close());
   $("wishlist-grid").addEventListener("click",async e=>{
@@ -151,14 +155,14 @@
   function adminList(){$("admin-gift-list").innerHTML=gifts.map(g=>{const bought=getStatus(g).status==="bought",buyer=purchases[g.id]?.guestName;return '<div class="admin-gift-row"><div><strong>'+escapeHTML(g.name)+'</strong><small>'+money(g.price)+' · '+escapeHTML(g.supplier||"No store")+(bought&&buyer?' · Bought by '+escapeHTML(buyer):'')+'</small></div><div><button data-edit="'+g.id+'">Edit</button><button data-bought="'+g.id+'">'+(bought?"Mark not bought":"Mark bought")+'</button><button data-delete="'+g.id+'">Delete</button></div></div>'}).join("")||"<p>No gifts yet.</p>"}
   $("admin-gift-list").addEventListener("click",async e=>{
     const edit=e.target.dataset.edit,del=e.target.dataset.delete,bought=e.target.dataset.bought;
-    if(edit){const g=gifts.find(x=>x.id===edit);if(!g)return;$("gift-save-message").hidden=true;$("gift-save-message").textContent="";$("gift-id").value=g.id;$("gift-name").value=g.name;$("gift-description").value=g.description||"";$("gift-price").value=g.price;$("gift-supplier").value=g.supplier||"";$("gift-url").value=g.url;$("gift-image").value=g.imageUrl||"";$("gift-inspo").value=g.inspiration||"";$("gift-form-title").textContent="Edit gift";$("gift-form").scrollIntoView({behavior:"smooth"})}
+    if(edit){const g=gifts.find(x=>x.id===edit);if(!g)return;$("gift-save-message").hidden=true;$("gift-save-message").textContent="";$("gift-id").value=g.id;$("gift-name").value=g.name;$("gift-description").value=g.description||"";$("gift-price").value=g.price;$("gift-supplier").value=g.supplier||"";$("gift-category").value=g.category||"Other";$("gift-url").value=g.url;$("gift-image").value=g.imageUrl||"";$("gift-inspo").value=g.inspiration||"";$("gift-form-title").textContent="Edit gift";$("gift-form").scrollIntoView({behavior:"smooth"})}
     if(bought){if(!isAdmin()){toast("Admin access required.");return}const status=getStatus(gifts.find(g=>g.id===bought)||{}).status;if(status==="bought"){try{await db.collection("giftHolds").doc(bought).delete();await db.collection("giftPurchases").doc(bought).delete();toast("Gift marked as not bought.");await load()}catch(err){toast(err.message)}}else{await markBought(bought)}}
     if(del&&confirm("Delete this gift from the wishlist?")){try{await db.collection("gifts").doc(del).delete();await db.collection("giftHolds").doc(del).delete();await db.collection("giftPurchases").doc(del).delete();toast("Gift deleted.");await load()}catch(err){toast(err.message)}}
   });
   $("gift-cancel").addEventListener("click",()=>{$("gift-form").reset();$("gift-id").value="";$("gift-form-title").textContent="Add a gift";$("gift-save-message").hidden=true;$("gift-save-message").textContent=""});
   $("gift-form").addEventListener("submit",async e=>{
     e.preventDefault();$("gift-save-message").hidden=true;$("gift-save-message").textContent="";if(!isAdmin()){$("gift-save-message").textContent="Admin access required. Please sign in again.";$("gift-save-message").hidden=false;return}
-    const id=$("gift-id").value,payload={name:$("gift-name").value.trim(),description:$("gift-description").value.trim(),price:Number($("gift-price").value),supplier:$("gift-supplier").value.trim(),url:$("gift-url").value.trim(),imageUrl:$("gift-image").value.trim()||"",inspiration:$("gift-inspo").value.trim(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
+    const id=$("gift-id").value,payload={name:$("gift-name").value.trim(),description:$("gift-description").value.trim(),price:Number($("gift-price").value),supplier:$("gift-supplier").value.trim(),category:$("gift-category").value,url:$("gift-url").value.trim(),imageUrl:$("gift-image").value.trim()||"",inspiration:$("gift-inspo").value.trim(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
     try{if(id)await db.collection("gifts").doc(id).update(payload);else await db.collection("gifts").add({...payload,createdAt:firebase.firestore.FieldValue.serverTimestamp()});toast(id?"Gift updated!":"Gift added!");$("gift-save-message").textContent=id?"Gift updated successfully!":"Gift added successfully!";$("gift-save-message").classList.remove("error");$("gift-save-message").classList.add("success");$("gift-save-message").hidden=false;$("gift-form").reset();$("gift-id").value="";$("gift-form-title").textContent="Add a gift";await load();adminList()}
     catch(err){$("gift-save-message").textContent="Couldn't save gift: "+(err.message||"Please check your connection and Firebase settings.");$("gift-save-message").classList.remove("success");$("gift-save-message").classList.add("error");$("gift-save-message").hidden=false;}
   });
