@@ -10,6 +10,6 @@ window.CHRISTMAS_CONFIG = {
     messagingSenderId: "688820789697",
     appId: "1:688820789697:web:90c26be3a19c4c0e50cf40"
   },
-  // Your Firebase Authentication user's UID. Firestore rules use this to protect admin writes.
-  adminUid: "SkgFX8eMrpP5NLt4sIzdL9NxAXC3"
+  // Only this verified Google account can access the admin panel.
+  adminEmail: "vincenzobal12@gmail.com"
 };
