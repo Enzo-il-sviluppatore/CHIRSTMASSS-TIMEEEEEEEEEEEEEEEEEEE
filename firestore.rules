@@ -19,10 +19,8 @@ service cloud.firestore {
         && request.resource.data.status == "bought"
         && request.resource.data.ownerUid == request.auth.uid
         && request.resource.data.holdKind == "purchase"
-        && request.resource.data.guestName is string
-        && request.resource.data.guestName.size() > 0
-        && request.resource.data.guestName.size() <= 50
-        && request.resource.data.expiresAt == null;
+        && request.resource.data.expiresAt == null
+        && getAfter(/databases/$(database)/documents/giftPurchases/$(giftId)).data.ownerUid == request.auth.uid;
     }
     match /gifts/{giftId} {
       allow read: if true;
@@ -38,10 +36,7 @@ service cloud.firestore {
           && resource.data.ownerUid == request.auth.uid
           && request.resource.data.status == "bought"
           && request.resource.data.ownerUid == resource.data.ownerUid
-          && request.resource.data.guestName is string
-          && request.resource.data.guestName.size() > 0
-          && request.resource.data.guestName.size() <= 50
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status", "expiresAt", "updatedAt", "guestName"])
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status", "expiresAt", "updatedAt"])
         )
         || (
           resource.data.status == "held"
@@ -54,6 +49,17 @@ service cloud.firestore {
           && validNewPurchase()
         );
       allow delete: if isAdmin();
+    }
+    match /giftPurchases/{giftId} {
+      allow read: if isAdmin();
+      allow create: if signedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.guestName is string
+        && request.resource.data.guestName.size() > 0
+        && request.resource.data.guestName.size() <= 50
+        && getAfter(/databases/$(database)/documents/giftHolds/$(giftId)).data.status == "bought"
+        && getAfter(/databases/$(database)/documents/giftHolds/$(giftId)).data.ownerUid == request.auth.uid;
+      allow update, delete: if isAdmin();
     }
   }
 }
