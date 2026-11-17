@@ -34,7 +34,14 @@
     <nav><a href="#wishlist">Wishlist</a><a href="#inspiration">Gift inspo</a><button id="music-toggle" class="icon-button" type="button" aria-label="Open Christmas music player">♫ <span>Music</span></button></nav>
   </header>
 
-  <section id="music-panel" class="music-panel" hidden aria-label="Christmas music player"><div class="music-panel-inner"><div class="music-player-frame"><div id="youtube-player"></div></div><div class="music-playlist"><div class="music-panel-heading"><div><p class="eyebrow">HOLIDAY SOUNDTRACK</p><h2>Christmas radio</h2></div><button id="music-close" class="music-close" type="button" aria-label="Close music player">×</button></div><p class="music-note">Choose a song to play. YouTube playback controls and ads, if any, are provided by YouTube.</p><div id="music-track-list" class="music-track-list"></div></div></div></section>
+  <section id="music-panel" class="music-panel" hidden aria-label="Christmas music player">
+<div class="music-panel-inner">
+<div class="audio-art"><div class="audio-record">♫</div><p>VINCENZO'S CHRISTMAS RADIO</p><span id="audio-current-title">Christmas music</span></div>
+<div class="music-playlist"><div class="music-panel-heading"><div><p class="eyebrow">HOLIDAY SOUNDTRACK</p><h2>Christmas radio</h2></div><button id="music-close" class="music-close" type="button" aria-label="Close music player">×</button></div>
+<p class="music-note" id="music-note">The site will try to start music automatically. If your browser blocks sound, press Play once.</p>
+<div class="audio-controls"><button id="audio-play" type="button" class="audio-control">▶ Play</button><button id="audio-pause" type="button" class="audio-control">Ⅱ Pause</button><label for="audio-volume">Volume</label><input id="audio-volume" type="range" min="0" max="1" step="0.05" value="0.55"></div>
+<div id="music-track-list" class="music-track-list"></div></div></div></section>
+<audio id="christmas-audio" preload="auto"></audio>
   <main>
     <section class="hero">
       <div class="hero-lights" aria-hidden="true">✦　●　✦　●　✦　●　✦　●　✦</div>
