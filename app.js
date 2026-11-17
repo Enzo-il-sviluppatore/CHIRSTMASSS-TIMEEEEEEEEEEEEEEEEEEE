@@ -187,6 +187,35 @@
     $("music-track-list").innerHTML=tracks.map((t,i)=>'<button type="button" class="music-track '+(i===trackIndex?"active":"")+'" data-track="'+i+'"><span class="track-number">'+String(i+1).padStart(2,"0")+'</span><span class="track-name">'+escapeHTML(t.title)+'</span><span class="track-play">'+(i===trackIndex?"♫":"▶")+'</span></button>').join("");
   }
   function setPlayerState(playing){$("now-playing-state").textContent=playing?"♫":"▶";$("audio-play").disabled=playing;$("audio-pause").disabled=!playing}
+  function formatTime(seconds){
+    if(!Number.isFinite(seconds)||seconds<0)return "0:00";
+    const total=Math.floor(seconds);
+    return Math.floor(total/60)+":"+String(total%60).padStart(2,"0");
+  }
+  function updateAudioTime(){
+    const current=formatTime(audio.currentTime),duration=formatTime(audio.duration);
+    $("top-audio-time").textContent=current+"/"+duration;
+    $("panel-audio-time").textContent=current+"/"+duration;
+    const seek=$("audio-seek");
+    if(Number.isFinite(audio.duration)&&audio.duration>0){
+      seek.max=audio.duration;
+      if(document.activeElement!==seek)seek.value=audio.currentTime;
+    }else{seek.max=100;seek.value=0}
+  }
+  function seekBy(seconds){
+    if(!Number.isFinite(audio.duration))return;
+    audio.currentTime=Math.max(0,Math.min(audio.duration,audio.currentTime+seconds));
+    updateAudioTime();
+  }
+  function skipTrack(){playTrack(trackIndex+1,true)}
+  ["audio-rewind","top-audio-rewind"].forEach(id=>$(id).addEventListener("click",e=>{e.stopPropagation();seekBy(-10)}));
+  ["audio-forward","top-audio-forward"].forEach(id=>$(id).addEventListener("click",e=>{e.stopPropagation();seekBy(10)}));
+  ["audio-skip","top-audio-skip"].forEach(id=>$(id).addEventListener("click",e=>{e.stopPropagation();skipTrack()}));
+  $("audio-seek").addEventListener("input",e=>{if(Number.isFinite(audio.duration))audio.currentTime=Number(e.target.value)});
+  audio.addEventListener("timeupdate",updateAudioTime);
+  audio.addEventListener("loadedmetadata",updateAudioTime);
+  audio.addEventListener("durationchange",updateAudioTime);
+  audio.addEventListener("seeked",updateAudioTime);
   function playTrack(i,tryPlay=true){
     trackIndex=(i+tracks.length)%tracks.length;
     const track=tracks[trackIndex];
