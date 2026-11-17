@@ -1,6 +1,6 @@
 # Vincenzo's Christmas Wishlist 🎄
 
-A classic red, green and gold Christmas wishlist with shared gift listings, 24-hour holds, a private admin area, search and filters, an inspiration section, a YouTube Christmas music player, and a custom favicon.
+A classic red, green and gold Christmas wishlist with shared gift listings, 24-hour holds, a private admin area, search and filters, an inspiration section, an audio-only Christmas music player, and a custom favicon.
 
 ## 1. Enable Firebase
 
@@ -37,7 +37,9 @@ Open the published site and choose **Admin** in the footer. Sign in using the Fi
 
 ## Christmas music
 
-The music player uses YouTube's official embedded player. It includes the three links supplied for the project plus three traditional carol performances from the verified United States Air Force Band channel. Playback starts only after a visitor chooses a track. YouTube controls playback and any ads shown in its player. The fact that a carol's composition is public domain does not automatically make every modern recording public domain; the website embeds videos rather than copying their audio.
+The site now uses an audio-only player and does not display YouTube videos. It attempts audible autoplay when the page loads, but browsers commonly block sound until a visitor interacts with the page. If blocked, the first click/tap retries playback, and the Play button is available.
+
+Add six MP3 recordings to the music/ folder using the exact filenames listed in music/README.md. Only upload recordings you own or that have a license explicitly allowing redistribution and hosting on a public website. An old carol's composition may be public domain while a particular recording remains copyrighted. A YouTube link alone is not permission to download and re-upload audio or video.
 
 ## Files
 
