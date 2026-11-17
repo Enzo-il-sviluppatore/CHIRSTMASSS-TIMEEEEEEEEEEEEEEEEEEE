@@ -152,13 +152,17 @@
     finally{button.disabled=false}
   });
   $("admin-signout").addEventListener("click",async()=>{await auth.signOut();currentUser=null;$("admin-panel").hidden=true;$("admin-login-form").hidden=false;toast("Signed out.");await load()});
-  function adminList(){$("admin-gift-list").innerHTML=gifts.map(g=>{const bought=getStatus(g).status==="bought",buyer=purchases[g.id]?.guestName;return '<div class="admin-gift-row"><div><strong>'+escapeHTML(g.name)+'</strong><small>'+money(g.price)+' · '+escapeHTML(g.supplier||"No store")+(bought&&buyer?' · Bought by '+escapeHTML(buyer):'')+'</small></div><div><button data-edit="'+g.id+'">Edit</button><button data-bought="'+g.id+'">'+(bought?"Mark not bought":"Mark bought")+'</button><button data-delete="'+g.id+'">Delete</button></div></div>'}).join("")||"<p>No gifts yet.</p>"}
+  function adminList(){const counts=[["Total gifts",gifts.length],["Available",gifts.filter(g=>getStatus(g).status==="available").length],["On hold",gifts.filter(g=>getStatus(g).status==="held").length],["Bought",gifts.filter(g=>getStatus(g).status==="bought").length]];$("admin-stats").innerHTML=counts.map(x=>'<div class="admin-stat"><strong>'+x[1]+'</strong><span>'+x[0]+'</span></div>').join("");$("admin-gift-list").innerHTML=[...gifts].sort((x,y)=>(Number(x.order)||0)-(Number(y.order)||0)).map(g=>{const bought=getStatus(g).status==="bought",buyer=purchases[g.id]?.guestName;return '<div class="admin-gift-row" draggable="true" data-sort-gift="'+g.id+'"><div><strong>'+escapeHTML(g.name)+'</strong><small>'+escapeHTML(g.category||"Other")+' · '+money(g.price)+' · '+escapeHTML(g.supplier||"No store")+(bought&&buyer?' · Bought by '+escapeHTML(buyer):'')+'</small></div><div><button data-edit="'+g.id+'">Edit</button><button data-bought="'+g.id+'">'+(bought?"Mark not bought":"Mark bought")+'</button><button data-delete="'+g.id+'">Delete</button></div></div>'}).join("")||"<p>No gifts yet.</p>"}
+  $("admin-gift-list").addEventListener("dragstart",e=>{const row=e.target.closest("[data-sort-gift]");if(!row)return;draggedGiftId=row.dataset.sortGift;e.dataTransfer.setData("text/plain",draggedGiftId);e.dataTransfer.effectAllowed="move";row.classList.add("dragging")});
+  $("admin-gift-list").addEventListener("dragover",e=>{const row=e.target.closest("[data-sort-gift]");if(!row||!draggedGiftId)return;e.preventDefault();const moving=$("admin-gift-list").querySelector(".dragging");if(!moving)return;const r=row.getBoundingClientRect();row.parentNode.insertBefore(moving,e.clientY<r.top+r.height/2?row:row.nextSibling)});
+  $("admin-gift-list").addEventListener("dragend",async()=>{if(!draggedGiftId)return;const rows=[...$("admin-gift-list").querySelectorAll("[data-sort-gift]")];try{await Promise.all(rows.map((row,i)=>db.collection("gifts").doc(row.dataset.sortGift).update({order:i})));gifts.sort((x,y)=>rows.findIndex(r=>r.dataset.sortGift===x.id)-rows.findIndex(r=>r.dataset.sortGift===y.id));toast("Gift order saved.");render()}catch(err){toast("Could not save order: "+err.message);adminList()}draggedGiftId=null});
   $("admin-gift-list").addEventListener("click",async e=>{
     const edit=e.target.dataset.edit,del=e.target.dataset.delete,bought=e.target.dataset.bought;
     if(edit){const g=gifts.find(x=>x.id===edit);if(!g)return;$("gift-save-message").hidden=true;$("gift-save-message").textContent="";$("gift-id").value=g.id;$("gift-name").value=g.name;$("gift-description").value=g.description||"";$("gift-price").value=g.price;$("gift-supplier").value=g.supplier||"";$("gift-category").value=g.category||"Other";$("gift-url").value=g.url;$("gift-image").value=g.imageUrl||"";$("gift-inspo").value=g.inspiration||"";$("gift-form-title").textContent="Edit gift";$("gift-form").scrollIntoView({behavior:"smooth"})}
     if(bought){if(!isAdmin()){toast("Admin access required.");return}const status=getStatus(gifts.find(g=>g.id===bought)||{}).status;if(status==="bought"){try{await db.collection("giftHolds").doc(bought).delete();await db.collection("giftPurchases").doc(bought).delete();toast("Gift marked as not bought.");await load()}catch(err){toast(err.message)}}else{await markBought(bought)}}
     if(del&&confirm("Delete this gift from the wishlist?")){try{await db.collection("gifts").doc(del).delete();await db.collection("giftHolds").doc(del).delete();await db.collection("giftPurchases").doc(del).delete();toast("Gift deleted.");await load()}catch(err){toast(err.message)}}
   });
+  $("gift-preview").addEventListener("click",()=>{const p={id:"preview",name:$("gift-name").value.trim()||"Gift preview",description:$("gift-description").value.trim(),price:$("gift-price").value,supplier:$("gift-supplier").value.trim(),category:$("gift-category").value,imageUrl:$("gift-image").value.trim(),inspiration:$("gift-inspo").value.trim(),url:$("gift-url").value.trim()};openGiftDetails(p)});
   $("gift-cancel").addEventListener("click",()=>{$("gift-form").reset();$("gift-id").value="";$("gift-form-title").textContent="Add a gift";$("gift-save-message").hidden=true;$("gift-save-message").textContent=""});
   $("gift-form").addEventListener("submit",async e=>{
     e.preventDefault();$("gift-save-message").hidden=true;$("gift-save-message").textContent="";if(!isAdmin()){$("gift-save-message").textContent="Admin access required. Please sign in again.";$("gift-save-message").hidden=false;return}
@@ -179,7 +183,7 @@
     {file:"music/God Rest Ye Merry Gentlemen (INSTRUMENTAL) - Tommee Profitt.mp3",title:"God Rest Ye Merry, Gentlemen"}
   ];
   const audio=$("christmas-audio");
-  let trackIndex=0,panelOpen=false,autoplayAttempted=false;
+  let trackIndex=0,panelOpen=false,autoplayAttempted=false,shuffleEnabled=false,repeatEnabled=false;
   audio.volume=.55;
   function showTrackTitle(title){
     $("now-playing-title").textContent=title;
@@ -199,7 +203,7 @@
   function updateAudioTime(){
     const current=formatTime(audio.currentTime),duration=formatTime(audio.duration);
     $("top-audio-time").textContent=current+"/"+duration;
-    $("panel-audio-time").textContent=current+"/"+duration;
+    $("panel-audio-time").textContent=current+"/"+duration;$("mini-player-time").textContent=current+"/"+duration;
     const seek=$("audio-seek");
     if(Number.isFinite(audio.duration)&&audio.duration>0){
       seek.max=audio.duration;
@@ -211,7 +215,7 @@
     audio.currentTime=Math.max(0,Math.min(audio.duration,audio.currentTime+seconds));
     updateAudioTime();
   }
-  function skipTrack(){playTrack(trackIndex+1,true)}
+  function skipTrack(){playTrack(shuffleEnabled?Math.floor(Math.random()*tracks.length):trackIndex+1,true)}
   ["audio-rewind","top-audio-rewind"].forEach(id=>$(id).addEventListener("click",e=>{e.stopPropagation();seekBy(-10)}));
   ["audio-forward","top-audio-forward"].forEach(id=>$(id).addEventListener("click",e=>{e.stopPropagation();seekBy(10)}));
   ["audio-skip","top-audio-skip"].forEach(id=>$(id).addEventListener("click",e=>{e.stopPropagation();skipTrack()}));
@@ -230,18 +234,21 @@
       .catch(()=>{$("music-note").textContent="Your browser blocked automatic sound, or the MP3 is not uploaded yet. Press Play after adding the licensed audio files.";setPlayerState(false)});
     } else setPlayerState(false);
   }
-  audio.addEventListener("ended",()=>playTrack(trackIndex+1,true));
-  audio.addEventListener("play",()=>setPlayerState(true));
-  audio.addEventListener("pause",()=>setPlayerState(false));
+  audio.addEventListener("ended",()=>{if(repeatEnabled){audio.currentTime=0;audio.play().catch(()=>{})}else playTrack(shuffleEnabled?Math.floor(Math.random()*tracks.length):trackIndex+1,true)});
+  audio.addEventListener("play",()=>{setPlayerState(true);$("mini-player").hidden=panelOpen;$("mini-player-play").textContent="Ⅱ"});
+  audio.addEventListener("pause",()=>{setPlayerState(false);$("mini-player-play").textContent="▶"});
   audio.addEventListener("error",()=>{$("music-note").textContent="This MP3 has not been uploaded yet. See music/README.md for the filenames.";setPlayerState(false)});
   $("audio-play").addEventListener("click",()=>audio.play().catch(()=>toast("That MP3 file isn't available yet.")));
   $("audio-pause").addEventListener("click",()=>audio.pause());
   $("audio-volume").addEventListener("input",e=>audio.volume=Number(e.target.value));
-  function toggleMusicPanel(){panelOpen=!panelOpen;$("music-panel").hidden=!panelOpen}
+  $("audio-shuffle").addEventListener("click",()=>{shuffleEnabled=!shuffleEnabled;$("audio-shuffle").textContent="🔀 Shuffle: "+(shuffleEnabled?"On":"Off");$("audio-shuffle").setAttribute("aria-pressed",String(shuffleEnabled))});
+  $("audio-repeat").addEventListener("click",()=>{repeatEnabled=!repeatEnabled;$("audio-repeat").textContent="🔁 Repeat: "+(repeatEnabled?"On":"Off");$("audio-repeat").setAttribute("aria-pressed",String(repeatEnabled))});
+  $("mini-player-play").addEventListener("click",()=>audio.paused?audio.play().catch(()=>{}):audio.pause());$("mini-player-next").addEventListener("click",skipTrack);$("mini-player-open").addEventListener("click",()=>{panelOpen=true;$("music-panel").hidden=false;$("mini-player").hidden=true});
+  function toggleMusicPanel(){panelOpen=!panelOpen;$("music-panel").hidden=!panelOpen;$("mini-player").hidden=panelOpen||!audio.src}
   $("music-toggle").addEventListener("click",toggleMusicPanel);
   $("now-playing").addEventListener("click",toggleMusicPanel);
   $("now-playing").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();toggleMusicPanel()}});
-  $("music-close").addEventListener("click",()=>{panelOpen=false;$("music-panel").hidden=true});
+  $("music-close").addEventListener("click",()=>{panelOpen=false;$("music-panel").hidden=true;$("mini-player").hidden=!audio.src});
   $("music-track-list").addEventListener("click",e=>{const b=e.target.closest("[data-track]");if(b)playTrack(Number(b.dataset.track),true)});
   updateTrackButtons();
   window.addEventListener("load",()=>{
