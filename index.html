@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#123b2b">
+  <meta name="description" content="Vincenzo's Christmas wishlist — a little list of things that make the season brighter.">
+  <title>Vincenzo's Christmas List 🎄</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <div id="welcome" class="welcome-screen" aria-live="polite">
+    <div class="welcome-snow">✳　❄　✧　❄　✳</div>
+    <div class="welcome-tree">🎄</div>
+    <p class="eyebrow">A little holiday magic</p>
+    <h1 id="welcome-message">Merry Christmas!</h1>
+    <p class="welcome-sub">Vincenzo's Christmas List</p>
+    <div class="loader"><span></span></div>
+  </div>
+
+  <div class="snow-layer" aria-hidden="true"></div>
+  <header class="site-header">
+    <a class="brand" href="#" aria-label="Vincenzo's Christmas List home"><span>🎄</span><span>Vincenzo's <b>Christmas List</b></span></a>
+    <nav><a href="#wishlist">Wishlist</a><a href="#inspiration">Gift inspo</a><button id="music-toggle" class="icon-button" type="button" aria-label="Toggle Christmas music">♫ <span>Music off</span></button></nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-lights" aria-hidden="true">✦　●　✦　●　✦　●　✦　●　✦</div>
+      <p class="eyebrow">The most wonderful time of the year</p>
+      <h1>Vincenzo's<br><em>Christmas List</em></h1>
+      <p class="hero-copy">A few things I'd love this Christmas. Thanks for stopping by — happy holidays! ✨</p>
+      <a class="primary-button" href="#wishlist">Explore the wishlist <span>↓</span></a>
+      <div class="hero-bottom"><span>❄ Made with Christmas spirit ❄</span><span id="countdown">Counting down to Christmas…</span></div>
+    </section>
+
+    <section id="wishlist" class="section">
+      <div class="section-heading">
+        <div><p class="eyebrow">Under the tree</p><h2>The Wishlist</h2><p class="muted">Browse the list and see what's still available.</p></div>
+        <span class="gift-count" id="gift-count">0 gifts</span>
+      </div>
+      <div class="toolbar">
+        <label class="search-box"><span>⌕</span><input id="search" type="search" placeholder="Search gifts by name…" aria-label="Search gifts by name"></label>
+        <select id="sort" aria-label="Sort gifts"><option value="featured">Sort: Featured</option><option value="price-asc">Price: Low to high</option><option value="price-desc">Price: High to low</option><option value="name">Name: A–Z</option><option value="supplier">Supplier: A–Z</option></select>
+        <div class="price-filter"><label for="min-price">Min $</label><input id="min-price" type="number" min="0" placeholder="0"><label for="max-price">Max $</label><input id="max-price" type="number" min="0" placeholder="Any"></div>
+      </div>
+      <div class="filter-row"><label for="supplier-filter">Store</label><select id="supplier-filter"><option value="">All stores</option></select><button id="clear-filters" class="text-button" type="button">Clear filters</button></div>
+      <div id="wishlist-grid" class="gift-grid"><div class="empty-state"><span>🎁</span><h3>Getting the gifts ready…</h3><p>Just a moment!</p></div></div>
+      <p class="privacy-note">A “Purchase” or “Maybe” hold lasts 24 hours. If you buy something, mark it as bought so it stays on the list but nobody else reserves it.</p>
+    </section>
+
+    <section id="inspiration" class="inspiration-section">
+      <div class="inspo-decoration">✧</div><p class="eyebrow">A little extra inspiration</p><h2>Want some inspo?</h2>
+      <p class="inspo-intro">Not sure what to choose? Here's a little more about the things I enjoy.</p>
+      <div id="inspo-content" class="inspo-content">I'll add some ideas here soon!</div>
+    </section>
+
+    <section class="closing">
+      <div>🕯️</div><h2>Wishing you a<br><em>very Merry Christmas</em></h2><p>Thanks for being part of the magic.</p><span>— Vincenzo</span>
+    </section>
+  </main>
+
+  <footer><span>🎄 Vincenzo's Christmas List</span><span>Made with ♥ and a little holiday magic</span><button id="admin-open" class="footer-admin" type="button">Admin</button></footer>
+
+  <dialog id="hold-dialog" class="modal">
+    <form id="hold-form" method="dialog"><button class="modal-close" value="cancel" aria-label="Close">×</button><p class="eyebrow">A little gift planning</p><h2 id="hold-title">Hold this gift?</h2><p id="hold-description" class="muted"></p><label for="guest-name">Your name (optional)</label><input id="guest-name" maxlength="50" placeholder="Your name"><div class="modal-actions"><button class="secondary-button" value="cancel">Cancel</button><button id="hold-confirm" class="primary-button" value="confirm">Confirm hold</button></div></form>
+  </dialog>
+
+  <dialog id="admin-dialog" class="modal admin-modal">
+    <form id="admin-login-form" class="admin-login"><button class="modal-close" type="button" id="admin-close" aria-label="Close">×</button><p class="eyebrow">Vincenzo only</p><h2>Admin corner</h2><p class="muted">Sign in with your admin account to manage the list.</p><label for="admin-email">Email</label><input id="admin-email" type="email" autocomplete="username" required><label for="admin-password">Password</label><input id="admin-password" type="password" autocomplete="current-password" required><button class="primary-button" type="submit">Sign in</button><p id="admin-message" class="form-message" role="status"></p></form>
+    <div id="admin-panel" hidden><div class="admin-top"><div><p class="eyebrow">Your dashboard</p><h2>Manage the wishlist</h2></div><button id="admin-signout" class="secondary-button" type="button">Sign out</button></div><form id="gift-form" class="gift-form"><h3 id="gift-form-title">Add a gift</h3><input id="gift-id" type="hidden"><label>Gift name<input id="gift-name" required maxlength="100"></label><label>Description<textarea id="gift-description" rows="3" maxlength="600"></textarea></label><div class="form-two"><label>Price ($)<input id="gift-price" type="number" min="0" step="0.01" required></label><label>Store / supplier<input id="gift-supplier" maxlength="60" placeholder="Amazon, Walmart…"></label></div><label>Product link<input id="gift-url" type="url" placeholder="https://…" required></label><label>Image URL (optional)<input id="gift-image" type="url" placeholder="https://…"></label><label>Inspiration / things I like<textarea id="gift-inspo" rows="3" placeholder="Add any text you want…"></textarea></label><div class="modal-actions"><button id="gift-cancel" class="secondary-button" type="button">Clear</button><button class="primary-button" type="submit">Save gift</button></div></form><h3>Current gifts</h3><div id="admin-gift-list" class="admin-gift-list"></div></div>
+  </dialog>
+
+  <audio id="christmas-audio" loop preload="none"></audio>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
