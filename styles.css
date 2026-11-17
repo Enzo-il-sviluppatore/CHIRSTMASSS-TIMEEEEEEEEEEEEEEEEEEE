@@ -35,3 +35,8 @@
 .track-play{font-size:.72rem;color:#e6c982}
 @media(max-width:850px){.site-header{flex-wrap:wrap;height:auto;min-height:68px;padding:10px 18px}.brand{flex:1}.now-playing{order:3;max-width:none;flex-basis:100%;margin:0 0 2px}.music-panel-inner{grid-template-columns:1fr}.audio-art{max-width:300px;width:100%;margin:auto}.music-track-list{grid-template-columns:1fr 1fr}}
 @media(max-width:600px){.site-header{gap:9px}.now-playing{padding:7px 10px}.now-playing-label{font-size:.53rem}.marquee-text{font-size:.7rem}nav{gap:10px}.music-panel{padding:18px 14px}.music-track-list{grid-template-columns:1fr}.music-panel-heading h2{font-size:1.5rem}}
+
+/* Keep gift-save feedback visible inside the admin dialog/top layer. */
+.gift-save-message{margin:0;padding:10px 12px;border-radius:5px;font-size:.82rem;font-weight:600;line-height:1.45}
+.gift-save-message.error{display:block;background:#fff0ed;border:1px solid #e6b4aa;color:#8d2922}
+.gift-save-message.success{display:block;background:#eaf4eb;border:1px solid #b9d4bd;color:#245b35}
