@@ -14,13 +14,23 @@ service cloud.firestore {
         && request.resource.data.expiresAt > request.time
         && request.resource.data.expiresAt <= request.time + duration.value(24, "h");
     }
+    function validNewPurchase() {
+      return signedIn()
+        && request.resource.data.status == "bought"
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.holdKind == "purchase"
+        && request.resource.data.guestName is string
+        && request.resource.data.guestName.size() > 0
+        && request.resource.data.guestName.size() <= 50
+        && request.resource.data.expiresAt == null;
+    }
     match /gifts/{giftId} {
       allow read: if true;
       allow create, update, delete: if isAdmin();
     }
     match /giftHolds/{giftId} {
       allow read: if true;
-      allow create: if isAdmin() || validNewHold();
+      allow create: if isAdmin() || validNewHold() || validNewPurchase();
       allow update: if isAdmin()
         || (
           signedIn()
@@ -28,12 +38,20 @@ service cloud.firestore {
           && resource.data.ownerUid == request.auth.uid
           && request.resource.data.status == "bought"
           && request.resource.data.ownerUid == resource.data.ownerUid
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status", "expiresAt", "updatedAt"])
+          && request.resource.data.guestName is string
+          && request.resource.data.guestName.size() > 0
+          && request.resource.data.guestName.size() <= 50
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status", "expiresAt", "updatedAt", "guestName"])
         )
         || (
           resource.data.status == "held"
           && resource.data.expiresAt <= request.time
           && validNewHold()
+        )
+        || (
+          resource.data.status == "held"
+          && resource.data.expiresAt <= request.time
+          && validNewPurchase()
         );
       allow delete: if isAdmin();
     }
