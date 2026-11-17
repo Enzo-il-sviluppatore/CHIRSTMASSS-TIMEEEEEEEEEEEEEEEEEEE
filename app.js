@@ -6,7 +6,7 @@
   $("welcome-message").textContent = greetings[Math.floor(Math.random()*greetings.length)];
   window.addEventListener("load",()=>setTimeout(()=>$("welcome").classList.add("hide"),1050));
   const configured = cfg.firebaseConfig && cfg.firebaseConfig.apiKey && !cfg.firebaseConfig.apiKey.includes("YOUR_") && cfg.firebaseConfig.projectId && !cfg.firebaseConfig.projectId.includes("YOUR_");
-  let auth=null, db=null, currentUser=null, gifts=[], statuses={}, selectedGift=null, selectedKind="purchase", toastTimer;
+  let auth=null, db=null, currentUser=null, gifts=[], statuses={}, purchases={}, selectedGift=null, selectedKind="purchase", toastTimer;
   if(configured && window.firebase) {
     try { firebase.initializeApp(cfg.firebaseConfig); auth=firebase.auth(); db=firebase.firestore(); } catch(e) { console.error(e); }
   }
@@ -21,9 +21,10 @@
   async function load(){
     if(!db){gifts=[];statuses={};render();$("inspo-content").textContent="Connect Firebase to start adding gift ideas and inspiration.";return}
     try{
-      const [giftSnap,holdSnap]=await Promise.all([db.collection("gifts").orderBy("createdAt","desc").get(),db.collection("giftHolds").get()]);
+      const [giftSnap,holdSnap,purchaseSnap]=await Promise.all([db.collection("gifts").orderBy("createdAt","desc").get(),db.collection("giftHolds").get(),isAdmin()?db.collection("giftPurchases").get():Promise.resolve({docs:[]})]);
       gifts=giftSnap.docs.map(d=>({id:d.id,...d.data()}));
       statuses=Object.fromEntries(holdSnap.docs.map(d=>[d.id,d.data()]));
+      purchases=Object.fromEntries(purchaseSnap.docs.map(d=>[d.id,d.data()]));
       render();
       const inspiration=gifts.map(g=>g.inspiration).filter(Boolean);
       $("inspo-content").textContent=inspiration.length?inspiration.join("\n\n"):"I'll add some ideas here soon!";
@@ -95,7 +96,8 @@
         if(existing&&existing.status==="bought")throw new Error("This gift has already been bought.");
         if(existing&&existing.status==="held"&&expiry&&expiry>new Date())throw new Error("Someone already has this gift on hold.");
         if(selectedKind==="bought"){
-          tx.set(ref,{status:"bought",holdKind:"purchase",ownerUid:currentUser.uid,guestName,expiresAt:null,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+          tx.set(ref,{status:"bought",holdKind:"purchase",ownerUid:currentUser.uid,expiresAt:null,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+          tx.set(db.collection("giftPurchases").doc(selectedGift.id),{ownerUid:currentUser.uid,guestName,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
         }else{
           tx.set(ref,{status:"held",holdKind:selectedKind,ownerUid:currentUser.uid,guestName:guestName||"",expiresAt:firebase.firestore.Timestamp.fromDate(new Date(Date.now()+24*60*60*1000)),updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
         }
@@ -123,12 +125,12 @@
     catch(err){$("admin-message").textContent=err.message}
   });
   $("admin-signout").addEventListener("click",async()=>{await auth.signOut();await ensureAnonymous();currentUser=auth.currentUser;$("admin-panel").hidden=true;$("admin-login-form").hidden=false;toast("Signed out.");await load()});
-  function adminList(){$("admin-gift-list").innerHTML=gifts.map(g=>{const bought=getStatus(g).status==="bought";return '<div class="admin-gift-row"><div><strong>'+escapeHTML(g.name)+'</strong><small>'+money(g.price)+' · '+escapeHTML(g.supplier||"No store")+'</small></div><div><button data-edit="'+g.id+'">Edit</button><button data-bought="'+g.id+'">'+(bought?"Mark not bought":"Mark bought")+'</button><button data-delete="'+g.id+'">Delete</button></div></div>'}).join("")||"<p>No gifts yet.</p>"}
+  function adminList(){$("admin-gift-list").innerHTML=gifts.map(g=>{const bought=getStatus(g).status==="bought",buyer=purchases[g.id]?.guestName;return '<div class="admin-gift-row"><div><strong>'+escapeHTML(g.name)+'</strong><small>'+money(g.price)+' · '+escapeHTML(g.supplier||"No store")+(bought&&buyer?' · Bought by '+escapeHTML(buyer):'')+'</small></div><div><button data-edit="'+g.id+'">Edit</button><button data-bought="'+g.id+'">'+(bought?"Mark not bought":"Mark bought")+'</button><button data-delete="'+g.id+'">Delete</button></div></div>'}).join("")||"<p>No gifts yet.</p>"}
   $("admin-gift-list").addEventListener("click",async e=>{
     const edit=e.target.dataset.edit,del=e.target.dataset.delete,bought=e.target.dataset.bought;
     if(edit){const g=gifts.find(x=>x.id===edit);if(!g)return;$("gift-save-message").hidden=true;$("gift-save-message").textContent="";$("gift-id").value=g.id;$("gift-name").value=g.name;$("gift-description").value=g.description||"";$("gift-price").value=g.price;$("gift-supplier").value=g.supplier||"";$("gift-url").value=g.url;$("gift-image").value=g.imageUrl||"";$("gift-inspo").value=g.inspiration||"";$("gift-form-title").textContent="Edit gift";$("gift-form").scrollIntoView({behavior:"smooth"})}
-    if(bought){if(!isAdmin()){toast("Admin access required.");return}const status=getStatus(gifts.find(g=>g.id===bought)||{}).status;if(status==="bought"){try{await db.collection("giftHolds").doc(bought).delete();toast("Gift marked as not bought.");await load()}catch(err){toast(err.message)}}else{await markBought(bought)}}
-    if(del&&confirm("Delete this gift from the wishlist?")){try{await db.collection("gifts").doc(del).delete();await db.collection("giftHolds").doc(del).delete();toast("Gift deleted.");await load()}catch(err){toast(err.message)}}
+    if(bought){if(!isAdmin()){toast("Admin access required.");return}const status=getStatus(gifts.find(g=>g.id===bought)||{}).status;if(status==="bought"){try{await db.collection("giftHolds").doc(bought).delete();await db.collection("giftPurchases").doc(bought).delete();toast("Gift marked as not bought.");await load()}catch(err){toast(err.message)}}else{await markBought(bought)}}
+    if(del&&confirm("Delete this gift from the wishlist?")){try{await db.collection("gifts").doc(del).delete();await db.collection("giftHolds").doc(del).delete();await db.collection("giftPurchases").doc(del).delete();toast("Gift deleted.");await load()}catch(err){toast(err.message)}}
   });
   $("gift-cancel").addEventListener("click",()=>{$("gift-form").reset();$("gift-id").value="";$("gift-form-title").textContent="Add a gift";$("gift-save-message").hidden=true;$("gift-save-message").textContent=""});
   $("gift-form").addEventListener("submit",async e=>{
