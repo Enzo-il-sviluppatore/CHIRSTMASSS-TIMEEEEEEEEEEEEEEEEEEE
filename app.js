@@ -16,7 +16,16 @@
   function isAdmin(){return !!(currentUser && cfg.adminUid && currentUser.uid===cfg.adminUid)}
   function setCountdown(){const now=new Date(),year=now.getMonth()===11&&now.getDate()>25?now.getFullYear()+1:now.getFullYear(),days=Math.ceil((new Date(year,11,25)-now)/86400000);$("countdown").textContent=days===0?"Merry Christmas! 🎄":days+" days until Christmas 🎁"}
   setCountdown();
-  async function ensureAnonymous(){if(!auth)throw new Error("Firebase is not configured yet.");if(!auth.currentUser){await auth.signInAnonymously()}currentUser=auth.currentUser}
+  async function ensureGoogleSignIn(){
+    if(!auth)throw new Error("Firebase is not configured yet.");
+    if(isAdmin())return currentUser;
+    const alreadyGoogle=auth.currentUser&&auth.currentUser.providerData.some(p=>p.providerId==="google.com");
+    if(alreadyGoogle){currentUser=auth.currentUser;return currentUser}
+    const provider=new firebase.auth.GoogleAuthProvider();
+    const result=await auth.signInWithPopup(provider);
+    currentUser=result.user;
+    return currentUser;
+  }
   function stampDate(value){return value&&typeof value.toDate==="function"?value.toDate():value?new Date(value):null}
   async function load(){
     if(!db){gifts=[];statuses={};render();$("inspo-content").textContent="Connect Firebase to start adding gift ideas and inspiration.";return}
@@ -70,7 +79,7 @@
       $("guest-name").value="";
       const buying=selectedKind==="bought";
       $("hold-title").textContent=buying?"Buying this gift?":"Maybe this one?";
-      $("hold-description").textContent=buying?"I use your name so when it comes time to send you a text to thank you, I dont have to remember I can just look. And no, I do not check to see what I'm getting.":"This lets everyone know someone is thinking about this gift. The hold lasts 24 hours.";
+      $("hold-description").textContent=(buying?"I use your name so when it comes time to send you a text to thank you, I dont have to remember I can just look. And no, I do not check to see what I'm getting.":"This lets everyone know someone is thinking about this gift. The hold lasts 24 hours.")+" You'll sign in with Google to continue.";
       $("guest-name").required=buying;
       $("hold-confirm").textContent=buying?"Confirm bought":"Confirm hold";
       $("hold-dialog").showModal();return;
@@ -88,7 +97,10 @@
     if(selectedKind==="bought"&&!guestName){$("guest-name").focus();toast("Please enter your name.");return}
     $("hold-confirm").disabled=true;
     try{
-      await ensureAnonymous();
+      await ensureGoogleSignIn();
+      if(!$("guest-name").value.trim()&&currentUser.displayName)$("guest-name").value=currentUser.displayName;
+      const finalGuestName=$("guest-name").value.trim();
+      if(selectedKind==="bought"&&!finalGuestName)throw new Error("Please enter your name.");
       const ref=db.collection("giftHolds").doc(selectedGift.id);
       await db.runTransaction(async tx=>{
         const snap=await tx.get(ref),existing=snap.exists?snap.data():null;
@@ -97,9 +109,9 @@
         if(existing&&existing.status==="held"&&expiry&&expiry>new Date())throw new Error("Someone already has this gift on hold.");
         if(selectedKind==="bought"){
           tx.set(ref,{status:"bought",holdKind:"purchase",ownerUid:currentUser.uid,expiresAt:null,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
-          tx.set(db.collection("giftPurchases").doc(selectedGift.id),{ownerUid:currentUser.uid,guestName,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+          tx.set(db.collection("giftPurchases").doc(selectedGift.id),{ownerUid:currentUser.uid,guestName:finalGuestName,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
         }else{
-          tx.set(ref,{status:"held",holdKind:selectedKind,ownerUid:currentUser.uid,guestName:guestName||"",expiresAt:firebase.firestore.Timestamp.fromDate(new Date(Date.now()+24*60*60*1000)),updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+          tx.set(ref,{status:"held",holdKind:selectedKind,ownerUid:currentUser.uid,guestName:finalGuestName||"",expiresAt:firebase.firestore.Timestamp.fromDate(new Date(Date.now()+24*60*60*1000)),updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
         }
       });
       $("hold-dialog").close();toast(selectedKind==="bought"?"Marked as bought. Thank you!":"Gift held for 24 hours. Thanks!");await load();
@@ -117,14 +129,14 @@
   }
   $("admin-open").addEventListener("click",()=>{$("admin-dialog").showModal();checkSession()});
   $("admin-close").addEventListener("click",()=>$("admin-dialog").close());
-  async function checkSession(){if(!auth){$("admin-message").textContent="Add your Firebase settings first.";return}if(!auth.currentUser){await ensureAnonymous()}currentUser=auth.currentUser;if(isAdmin())showAdmin();else{$("admin-login-form").hidden=false;$("admin-panel").hidden=true}}
+  async function checkSession(){if(!auth){$("admin-message").textContent="Add your Firebase settings first.";return}currentUser=auth.currentUser;if(isAdmin())showAdmin();else{$("admin-login-form").hidden=false;$("admin-panel").hidden=true}}
   function showAdmin(){$("admin-login-form").hidden=true;$("admin-panel").hidden=false;adminList()}
   $("admin-login-form").addEventListener("submit",async e=>{
     e.preventDefault();if(!auth)return;
-    try{const cred=await auth.signInWithEmailAndPassword($("admin-email").value,$("admin-password").value);currentUser=cred.user;if(!isAdmin()){await auth.signOut();await ensureAnonymous();currentUser=auth.currentUser;throw new Error("This account isn't configured as the website admin. Check adminUid in config.js and firestore.rules.")}$("admin-message").textContent="";showAdmin();await load()}
+    try{const cred=await auth.signInWithEmailAndPassword($("admin-email").value,$("admin-password").value);currentUser=cred.user;if(!isAdmin()){await auth.signOut();currentUser=null;throw new Error("This account isn't configured as the website admin. Check adminUid in config.js and firestore.rules.")}$("admin-message").textContent="";showAdmin();await load()}
     catch(err){$("admin-message").textContent=err.message}
   });
-  $("admin-signout").addEventListener("click",async()=>{await auth.signOut();await ensureAnonymous();currentUser=auth.currentUser;$("admin-panel").hidden=true;$("admin-login-form").hidden=false;toast("Signed out.");await load()});
+  $("admin-signout").addEventListener("click",async()=>{await auth.signOut();currentUser=null;$("admin-panel").hidden=true;$("admin-login-form").hidden=false;toast("Signed out.");await load()});
   function adminList(){$("admin-gift-list").innerHTML=gifts.map(g=>{const bought=getStatus(g).status==="bought",buyer=purchases[g.id]?.guestName;return '<div class="admin-gift-row"><div><strong>'+escapeHTML(g.name)+'</strong><small>'+money(g.price)+' · '+escapeHTML(g.supplier||"No store")+(bought&&buyer?' · Bought by '+escapeHTML(buyer):'')+'</small></div><div><button data-edit="'+g.id+'">Edit</button><button data-bought="'+g.id+'">'+(bought?"Mark not bought":"Mark bought")+'</button><button data-delete="'+g.id+'">Delete</button></div></div>'}).join("")||"<p>No gifts yet.</p>"}
   $("admin-gift-list").addEventListener("click",async e=>{
     const edit=e.target.dataset.edit,del=e.target.dataset.delete,bought=e.target.dataset.bought;
@@ -139,7 +151,7 @@
     try{if(id)await db.collection("gifts").doc(id).update(payload);else await db.collection("gifts").add({...payload,createdAt:firebase.firestore.FieldValue.serverTimestamp()});toast(id?"Gift updated!":"Gift added!");$("gift-save-message").textContent=id?"Gift updated successfully!":"Gift added successfully!";$("gift-save-message").classList.remove("error");$("gift-save-message").classList.add("success");$("gift-save-message").hidden=false;$("gift-form").reset();$("gift-id").value="";$("gift-form-title").textContent="Add a gift";await load();adminList()}
     catch(err){$("gift-save-message").textContent="Couldn't save gift: "+(err.message||"Please check your connection and Firebase settings.");$("gift-save-message").classList.remove("success");$("gift-save-message").classList.add("error");$("gift-save-message").hidden=false;}
   });
-  if(auth)auth.onAuthStateChanged(async user=>{currentUser=user;if(user){await load();if($("admin-dialog").open&&isAdmin())showAdmin()}else{try{await auth.signInAnonymously()}catch(e){console.error(e)}}});
+  if(auth)auth.onAuthStateChanged(async user=>{currentUser=user;await load();if($("admin-dialog").open){if(isAdmin())showAdmin();else{$("admin-login-form").hidden=false;$("admin-panel").hidden=true}}});
   if(!auth)load();
 
   // Audio-only playlist. Put properly licensed MP3s in /music using these filenames.
