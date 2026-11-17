@@ -13,7 +13,7 @@
   const escapeHTML=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const money=n=>new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format(Number(n)||0);
   function toast(msg){const el=$("toast");el.textContent=msg;el.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),3500)}
-  function isAdmin(){return !!(currentUser && cfg.adminUid && currentUser.uid===cfg.adminUid)}
+  function isAdmin(){return !!(currentUser && currentUser.email && currentUser.email.toLowerCase()===String(cfg.adminEmail||"").toLowerCase() && currentUser.emailVerified && currentUser.providerData.some(p=>p.providerId==="google.com"))}
   function setCountdown(){const now=new Date(),year=now.getMonth()===11&&now.getDate()>25?now.getFullYear()+1:now.getFullYear(),days=Math.ceil((new Date(year,11,25)-now)/86400000);$("countdown").textContent=days===0?"Merry Christmas! 🎄":days+" days until Christmas 🎁"}
   setCountdown();
   async function ensureGoogleSignIn(){
@@ -129,10 +129,23 @@
   $("admin-close").addEventListener("click",()=>$("admin-dialog").close());
   async function checkSession(){if(!auth){$("admin-message").textContent="Add your Firebase settings first.";return}currentUser=auth.currentUser;if(isAdmin())showAdmin();else{$("admin-login-form").hidden=false;$("admin-panel").hidden=true}}
   function showAdmin(){$("admin-login-form").hidden=true;$("admin-panel").hidden=false;adminList()}
-  $("admin-login-form").addEventListener("submit",async e=>{
-    e.preventDefault();if(!auth)return;
-    try{const cred=await auth.signInWithEmailAndPassword($("admin-email").value,$("admin-password").value);currentUser=cred.user;if(!isAdmin()){await auth.signOut();currentUser=null;throw new Error("This account isn't configured as the website admin. Check adminUid in config.js and firestore.rules.")}$("admin-message").textContent="";showAdmin();await load()}
-    catch(err){$("admin-message").textContent=err.message}
+  $("admin-google-login").addEventListener("click",async()=>{
+    if(!auth)return;
+    const button=$("admin-google-login");
+    button.disabled=true;$("admin-message").textContent="Opening Google sign-in…";
+    try{
+      const provider=new firebase.auth.GoogleAuthProvider();
+      provider.setCustomParameters({prompt:"select_account"});
+      const result=await auth.signInWithPopup(provider);
+      currentUser=result.user;
+      if(!isAdmin()){
+        $("admin-message").textContent="That Google account isn't authorized. Sign in with vincenzobal12@gmail.com.";
+        $("admin-panel").hidden=true;$("admin-login-form").hidden=false;
+        return;
+      }
+      $("admin-message").textContent="";showAdmin();await load();
+    }catch(err){$("admin-message").textContent=err.message}
+    finally{button.disabled=false}
   });
   $("admin-signout").addEventListener("click",async()=>{await auth.signOut();currentUser=null;$("admin-panel").hidden=true;$("admin-login-form").hidden=false;toast("Signed out.");await load()});
   function adminList(){$("admin-gift-list").innerHTML=gifts.map(g=>{const bought=getStatus(g).status==="bought",buyer=purchases[g.id]?.guestName;return '<div class="admin-gift-row"><div><strong>'+escapeHTML(g.name)+'</strong><small>'+money(g.price)+' · '+escapeHTML(g.supplier||"No store")+(bought&&buyer?' · Bought by '+escapeHTML(buyer):'')+'</small></div><div><button data-edit="'+g.id+'">Edit</button><button data-bought="'+g.id+'">'+(bought?"Mark not bought":"Mark bought")+'</button><button data-delete="'+g.id+'">Delete</button></div></div>'}).join("")||"<p>No gifts yet.</p>"}
