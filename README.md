@@ -1,68 +1,51 @@
 # Vincenzo's Christmas Wishlist 🎄
 
-A classic Christmas-themed, mobile-friendly wishlist. It supports product descriptions, names, prices, store names and links; search and sorting; 24-hour Purchase/Maybe holds; a permanent Bought status; a free-text inspiration section; an admin area; a rotating welcome greeting; and optional original synthesized bell music.
+A classic red, green and gold Christmas wishlist with shared gift listings, 24-hour holds, a private admin area, search and filters, an inspiration section, a YouTube Christmas music player, and a custom favicon.
 
-## 1. Publish with GitHub Pages
+## 1. Enable Firebase
 
-1. Open the repository on GitHub.
-2. Go to **Settings → Pages**.
-3. Under **Build and deployment**, choose **Deploy from a branch**.
-4. Choose the `main` branch and `/(root)`, then save.
-5. GitHub will show the public website address when deployment is ready.
+1. Create a project in the Firebase Console.
+2. Add a **Web app** to the project and copy its Firebase configuration.
+3. In **Authentication → Sign-in method**, enable **Anonymous** and **Email/Password**.
+4. In **Firestore Database**, create a database.
+5. Open **Firestore Database → Rules** and paste the contents of `firestore.rules`. Replace `YOUR_ADMIN_USER_UID` with the admin user's UID (step 6 below), then publish.
+6. In **Authentication → Users**, add the admin account using email/password. Copy its UID.
+7. Open `config.js` in this repository. Replace the Firebase configuration placeholders and `YOUR_ADMIN_USER_UID` with the values from your Firebase project and admin account.
 
-## 2. Connect the database (Supabase)
+The Firebase web configuration is public by design. Do not put service-account keys or private credentials in this repository. Firestore security rules—not hidden client settings—protect the data.
 
-The site uses Supabase for shared gifts and holds, so visitors all see the same reservations.
+## 2. Publish with GitHub Pages
 
-1. Create a Supabase project.
-2. Open **SQL Editor** in Supabase.
-3. Paste and run all of `supabase-setup.sql`.
-4. Paste and run all of `admin-mark-bought.sql`.
-5. In **Project Settings → API**, copy the Project URL and anon/publishable key.
-6. Open `config.js` in this repository and replace the two placeholder values:
-   - `YOUR_SUPABASE_PROJECT_URL`
-   - `YOUR_SUPABASE_ANON_OR_PUBLISHABLE_KEY`
+1. Open this repository's **Settings → Pages**.
+2. Under **Build and deployment**, choose **Deploy from a branch**.
+3. Select branch `main` and folder `/(root)`, then save.
+4. GitHub Pages will display the published website address when deployment completes.
 
-The anon/publishable key is designed to be used in a public website. **Never place a Supabase service-role key in this repository.**
+## 3. Add gifts and manage the site
 
-## 3. Create the admin login
+Open the published site and choose **Admin** in the footer. Sign in using the Firebase email/password account. Add gift name, description, price, supplier, product link, optional image link, and optional inspiration text.
 
-1. In Supabase, open **Authentication → Users** and create your admin user with an email and password.
-2. Copy that user's UUID.
-3. In Supabase **SQL Editor**, replace `YOUR-USER-UUID` in the commented example at the bottom of `supabase-setup.sql` with the UUID, remove the leading SQL comment markers from the two lines, and run it:
+## Gift reservations
 
-```sql
-update auth.users
-set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb) || '{"role":"admin"}'::jsonb
-where id = 'YOUR-USER-UUID';
-```
+- Visitors are signed in anonymously by Firebase Authentication; no account is needed.
+- Purchase and Maybe both create a shared 24-hour hold.
+- The visitor's anonymous Firebase account is associated with the hold, so the same browser can mark it bought later.
+- An expired hold can be replaced by another visitor.
+- Bought items remain visible and cannot be reserved again.
+- The admin can mark any item bought or add/edit/delete gifts.
+- Hold documents contain only a random anonymous UID and status/expiry information. Do not collect personal details in the gift list.
 
-4. Sign out and back in after the role is set. Open **Admin** in the website footer and sign in with that account.
+## Christmas music
 
-Only users with the admin role can add, edit or delete gifts. Visitors can view gifts and create a hold, but the reservation records and private hold tokens are not exposed to visitors.
-
-## 4. Add your gifts
-
-In the website's **Admin** area, add each gift's name, description, price, supplier, product URL, and optional image URL. Put any general likes and gift ideas in the Inspiration text field; it appears in the “Want some inspo?” section. You can add several inspiration entries across gifts.
-
-## How holds work
-
-- **Purchase** and **Maybe** both create a 24-hour hold.
-- A held gift shows “Someone is thinking of buying this item” and the remaining hold time.
-- The browser that placed the hold gets a **Bought** button. After purchasing, the visitor can return and mark it bought.
-- A bought gift remains visible but cannot be reserved again.
-- The admin can also mark a gift as bought from the admin area.
-- An expired hold becomes available again automatically.
-
-The optional music is generated in the browser and starts only after a visitor presses the Music button. No audio file or copyrighted song is used.
+The music player uses YouTube's official embedded player. It includes the three links supplied for the project plus three traditional carol performances from the verified United States Air Force Band channel. Playback starts only after a visitor chooses a track. YouTube controls playback and any ads shown in its player. The fact that a carol's composition is public domain does not automatically make every modern recording public domain; the website embeds videos rather than copying their audio.
 
 ## Files
 
-- `index.html` — page structure
-- `styles.css` — classic Christmas styling and responsive layout
-- `app.js` — wishlist, search, holds, admin tools and music
-- `config.js` — public Supabase project settings
-- `supabase-setup.sql` — database, access policies and hold functions
-- `admin-mark-bought.sql` — admin-only mark-bought function
+- `index.html` — page structure and music player
+- `styles.css` — responsive Christmas theme
+- `app.js` — Firebase, reservations, admin, filters and music playlist
+- `config.js` — public Firebase web configuration and admin UID
+- `firestore.rules` — Firestore access rules
+- `favicon.svg` — custom Christmas tree browser icon
 
-If you change files on GitHub, GitHub Pages will redeploy the site automatically.
+If you update a file on GitHub, GitHub Pages will redeploy the site automatically.
