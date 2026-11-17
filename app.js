@@ -47,7 +47,7 @@
       const st=getStatus(g),held=st.status==="held",bought=st.status==="bought",label=bought?"Bought":held?"On hold":"Available";
       const ownsHold=held&&currentUser&&st.ownerUid===currentUser.uid;
       const image=g.imageUrl?'<img src="'+escapeHTML(g.imageUrl)+'" alt="'+escapeHTML(g.name)+'" loading="lazy" onerror="this.remove()">':'<span class="gift-emoji">🎁</span>';
-      const boughtButton='<button class="maybe" data-action="bought" data-id="'+g.id+'" '+(bought||(!isAdmin()&&!(held&&ownsHold))?"disabled":"")+'>'+(bought?"Bought":"✓ Bought")+'</button>';
+      const boughtButton='<button class="maybe" data-action="bought" data-id="'+g.id+'" '+(bought?"disabled":"")+'>'+(bought?"Bought":"✓ Bought")+'</button>';
       return '<article class="gift-card" data-gift-card="'+g.id+'" tabindex="0" role="button" aria-label="View details for '+escapeHTML(g.name)+'"><div class="gift-image">'+image+'</div><div class="gift-card-body"><div class="gift-meta"><span class="supplier">'+escapeHTML(g.supplier||"Gift idea")+'</span><span class="status '+(bought?"bought":held?"held":"available")+'">'+label+'</span></div><h3>'+escapeHTML(g.name)+'</h3><div class="gift-bottom"><strong class="gift-price">'+money(g.price)+'</strong></div><div class="gift-actions">'+boughtButton+'<button class="maybe" data-action="maybe" data-id="'+g.id+'" '+(held||bought?"disabled":"")+'>'+(held?"Reserved":bought?"Bought":"Maybe")+'</button></div>'+(held?'<p class="hold-info">Someone is thinking of buying this item · '+timeLeft(st.expiresAt)+'</p>':"")+'</div></article>';
     }).join("");
   }
@@ -65,11 +65,14 @@
   $("wishlist-grid").addEventListener("click",async e=>{
     const b=e.target.closest("button[data-action]");
     if(b){
-      if(b.dataset.action==="bought"){await markBought(b.dataset.id);return}
       const gift=gifts.find(g=>g.id===b.dataset.id);if(!gift)return;selectedGift=gift;selectedKind=b.dataset.action;
-      $("hold-title").textContent="Maybe this one?";
-      $("hold-description").textContent="This lets everyone know someone is thinking about this gift. The hold lasts 24 hours.";
-      $("guest-name").value="";$("hold-dialog").showModal();return;
+      $("guest-name").value="";
+      const buying=selectedKind==="bought";
+      $("hold-title").textContent=buying?"Buying this gift?":"Maybe this one?";
+      $("hold-description").textContent=buying?"I use your name so when it comes time to send you a text to thank you, I dont have to remember I can just look. And no, I do not check to see what I'm getting.":"This lets everyone know someone is thinking about this gift. The hold lasts 24 hours.";
+      $("guest-name").required=buying;
+      $("hold-confirm").textContent=buying?"Confirm bought":"Confirm hold";
+      $("hold-dialog").showModal();return;
     }
     const card=e.target.closest("[data-gift-card]");if(card)openGiftDetails(gifts.find(g=>g.id===card.dataset.giftCard));
   });
@@ -80,6 +83,8 @@
   $("hold-form").addEventListener("submit",async e=>{
     if(e.submitter?.value!=="confirm")return;e.preventDefault();
     if(!selectedGift||!db){toast("Firebase hasn't been connected yet.");$("hold-dialog").close();return}
+    const guestName=$("guest-name").value.trim();
+    if(selectedKind==="bought"&&!guestName){$("guest-name").focus();toast("Please enter your name.");return}
     $("hold-confirm").disabled=true;
     try{
       await ensureAnonymous();
@@ -89,10 +94,14 @@
         const expiry=existing?stampDate(existing.expiresAt):null;
         if(existing&&existing.status==="bought")throw new Error("This gift has already been bought.");
         if(existing&&existing.status==="held"&&expiry&&expiry>new Date())throw new Error("Someone already has this gift on hold.");
-        tx.set(ref,{status:"held",holdKind:selectedKind,ownerUid:currentUser.uid,expiresAt:firebase.firestore.Timestamp.fromDate(new Date(Date.now()+24*60*60*1000)),updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+        if(selectedKind==="bought"){
+          tx.set(ref,{status:"bought",holdKind:"purchase",ownerUid:currentUser.uid,guestName,expiresAt:null,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+        }else{
+          tx.set(ref,{status:"held",holdKind:selectedKind,ownerUid:currentUser.uid,guestName:guestName||"",expiresAt:firebase.firestore.Timestamp.fromDate(new Date(Date.now()+24*60*60*1000)),updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+        }
       });
-      $("hold-dialog").close();toast("Gift held for 24 hours. Thanks!");await load();
-    }catch(err){toast(err.message||"Couldn't reserve this gift. Check Firebase rules.");}
+      $("hold-dialog").close();toast(selectedKind==="bought"?"Marked as bought. Thank you!":"Gift held for 24 hours. Thanks!");await load();
+    }catch(err){toast(err.message||"Couldn't update this gift. Check Firebase rules.");}
     finally{$("hold-confirm").disabled=false}
   });
   async function markBought(id){
