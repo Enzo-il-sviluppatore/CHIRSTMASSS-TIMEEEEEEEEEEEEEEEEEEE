@@ -116,24 +116,63 @@
   if(auth)auth.onAuthStateChanged(async user=>{currentUser=user;if(user){await load();if($("admin-dialog").open&&isAdmin())showAdmin()}else{try{await auth.signInAnonymously()}catch(e){console.error(e)}}});
   if(!auth)load();
 
-  // YouTube's official embedded player; audio is never downloaded or re-hosted.
+  // Audio-only playlist. Put properly licensed MP3s in /music using these filenames.
   const tracks=[
-    {id:"tamy_K2jmW0",title:"Your Christmas pick 1"},
-    {id:"iO7ySn-Swwc",title:"Your Christmas pick 2"},
-    {id:"xjqt7kD96RM",title:"Your Christmas pick 3"},
-    {id:"AYomairE6eY",title:"Joy to the World — USAF Band"},
-    {id:"7ZLkPc4bqeA",title:"Silent Night — USAF Band"},
-    {id:"059zU_L9Ix8",title:"God Rest Ye Merry, Gentlemen — USAF Band"}
+    {file:"music/01-your-youtube-pick.mp3",title:"Your Christmas pick 1"},
+    {file:"music/02-your-youtube-pick.mp3",title:"Your Christmas pick 2"},
+    {file:"music/03-your-youtube-pick.mp3",title:"Your Christmas pick 3"},
+    {file:"music/04-joy-to-the-world.mp3",title:"Joy to the World"},
+    {file:"music/05-silent-night.mp3",title:"Silent Night"},
+    {file:"music/06-god-rest-ye-merry-gentlemen.mp3",title:"God Rest Ye Merry, Gentlemen"}
   ];
-  let trackIndex=0,ytPlayer=null,ytReady=false,panelOpen=false;
-  function showTrackTitle(title){$("now-playing-title").textContent=title||"Christmas music";$("now-playing-title").classList.remove("scrolling");requestAnimationFrame(()=>{const el=$("now-playing-title");if(el.scrollWidth>el.parentElement.clientWidth)el.classList.add("scrolling")})}
-  function updateTrackButtons(){$("music-track-list").innerHTML=tracks.map((t,i)=>'<button type="button" class="music-track '+(i===trackIndex?"active":"")+'" data-track="'+i+'"><span class="track-number">'+String(i+1).padStart(2,"0")+'</span><span class="track-name">'+escapeHTML(t.title)+'</span><span class="track-play">'+(i===trackIndex?"♫":"▶")+'</span></button>').join("")}
-  function loadTrack(i,autoplay=true){trackIndex=(i+tracks.length)%tracks.length;const t=tracks[trackIndex];showTrackTitle(t.title);updateTrackButtons();if(ytReady&&ytPlayer){if(autoplay)ytPlayer.loadVideoById(t.id);else ytPlayer.cueVideoById(t.id)}else{window.pendingChristmasTrack={id:t.id,autoplay}}}
-  window.onYouTubeIframeAPIReady=()=>{ytPlayer=new YT.Player("youtube-player",{width:"100%",height:"100%",videoId:tracks[0].id,playerVars:{playsinline:1,rel:0,origin:location.origin},events:{onReady:()=>{ytReady=true;if(window.pendingChristmasTrack){const p=window.pendingChristmasTrack;delete window.pendingChristmasTrack;p.autoplay?ytPlayer.loadVideoById(p.id):ytPlayer.cueVideoById(p.id)}else{const d=ytPlayer.getVideoData();if(d&&d.title)showTrackTitle(d.title)}},onStateChange:e=>{if(e.data===YT.PlayerState.PLAYING){const d=ytPlayer.getVideoData();if(d&&d.title)showTrackTitle(d.title);$("now-playing-state").textContent="♫"}else if(e.data===YT.PlayerState.PAUSED||e.data===YT.PlayerState.ENDED){$("now-playing-state").textContent="▶";if(e.data===YT.PlayerState.ENDED)loadTrack(trackIndex+1)}}}})};
-  const ytApi=document.createElement("script");ytApi.src="https://www.youtube.com/iframe_api";document.head.appendChild(ytApi);
-  function toggleMusicPanel(){panelOpen=!panelOpen;$("music-panel").hidden=!panelOpen;if(panelOpen&&ytReady&&ytPlayer&&ytPlayer.getPlayerState()===YT.PlayerState.UNSTARTED)loadTrack(trackIndex,false)}
-  $("music-toggle").addEventListener("click",toggleMusicPanel);$("now-playing").addEventListener("click",toggleMusicPanel);$("now-playing").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();toggleMusicPanel()}});
+  const audio=$("christmas-audio");
+  let trackIndex=0,panelOpen=false,autoplayAttempted=false;
+  audio.volume=.55;
+  function showTrackTitle(title){
+    $("now-playing-title").textContent=title;
+    $("audio-current-title").textContent=title;
+    $("now-playing-title").classList.remove("scrolling");
+    requestAnimationFrame(()=>{const el=$("now-playing-title");if(el.scrollWidth>el.parentElement.clientWidth)el.classList.add("scrolling")});
+  }
+  function updateTrackButtons(){
+    $("music-track-list").innerHTML=tracks.map((t,i)=>'<button type="button" class="music-track '+(i===trackIndex?"active":"")+'" data-track="'+i+'"><span class="track-number">'+String(i+1).padStart(2,"0")+'</span><span class="track-name">'+escapeHTML(t.title)+'</span><span class="track-play">'+(i===trackIndex?"♫":"▶")+'</span></button>').join("");
+  }
+  function setPlayerState(playing){$("now-playing-state").textContent=playing?"♫":"▶";$("audio-play").disabled=playing;$("audio-pause").disabled=!playing}
+  function playTrack(i,tryPlay=true){
+    trackIndex=(i+tracks.length)%tracks.length;
+    const track=tracks[trackIndex];
+    showTrackTitle(track.title);updateTrackButtons();
+    audio.pause();audio.src=track.file;audio.load();
+    if(tryPlay){
+      audio.play().then(()=>{$("music-note").textContent="Now playing.";setPlayerState(true)})
+      .catch(()=>{$("music-note").textContent="Your browser blocked automatic sound, or the MP3 is not uploaded yet. Press Play after adding the licensed audio files.";setPlayerState(false)});
+    } else setPlayerState(false);
+  }
+  audio.addEventListener("ended",()=>playTrack(trackIndex+1,true));
+  audio.addEventListener("play",()=>setPlayerState(true));
+  audio.addEventListener("pause",()=>setPlayerState(false));
+  audio.addEventListener("error",()=>{$("music-note").textContent="This MP3 has not been uploaded yet. See music/README.md for the filenames.";setPlayerState(false)});
+  $("audio-play").addEventListener("click",()=>audio.play().catch(()=>toast("That MP3 file isn't available yet.")));
+  $("audio-pause").addEventListener("click",()=>audio.pause());
+  $("audio-volume").addEventListener("input",e=>audio.volume=Number(e.target.value));
+  function toggleMusicPanel(){panelOpen=!panelOpen;$("music-panel").hidden=!panelOpen}
+  $("music-toggle").addEventListener("click",toggleMusicPanel);
+  $("now-playing").addEventListener("click",toggleMusicPanel);
+  $("now-playing").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();toggleMusicPanel()}});
   $("music-close").addEventListener("click",()=>{panelOpen=false;$("music-panel").hidden=true});
-  $("music-track-list").addEventListener("click",e=>{const b=e.target.closest("[data-track]");if(b)loadTrack(Number(b.dataset.track),true)});
-  updateTrackButtons();loadTrack(0,false);
+  $("music-track-list").addEventListener("click",e=>{const b=e.target.closest("[data-track]");if(b)playTrack(Number(b.dataset.track),true)});
+  updateTrackButtons();
+  window.addEventListener("load",()=>{
+    if(autoplayAttempted)return;
+    autoplayAttempted=true;
+    playTrack(0,true);
+  });
+  // If audible autoplay is blocked, retry after the first real visitor gesture.
+  const retryAutoplay=()=>{
+    if(audio.paused&&audio.src)audio.play().catch(()=>{});
+    document.removeEventListener("pointerdown",retryAutoplay);
+    document.removeEventListener("keydown",retryAutoplay);
+  };
+  document.addEventListener("pointerdown",retryAutoplay,{once:true});
+  document.addEventListener("keydown",retryAutoplay,{once:true});
 })();
