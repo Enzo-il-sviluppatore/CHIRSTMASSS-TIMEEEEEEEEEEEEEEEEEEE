@@ -163,10 +163,10 @@
     if(del&&confirm("Delete this gift from the wishlist?")){try{await db.collection("gifts").doc(del).delete();await db.collection("giftHolds").doc(del).delete();await db.collection("giftPurchases").doc(del).delete();toast("Gift deleted.");await load()}catch(err){toast(err.message)}}
   });
   $("gift-preview").addEventListener("click",()=>{const p={id:"preview",name:$("gift-name").value.trim()||"Gift preview",description:$("gift-description").value.trim(),price:$("gift-price").value,supplier:$("gift-supplier").value.trim(),category:$("gift-category").value,imageUrl:$("gift-image").value.trim(),inspiration:$("gift-inspo").value.trim(),url:$("gift-url").value.trim()};openGiftDetails(p)});
-  $("gift-cancel").addEventListener("click",()=>{$("gift-form").reset();$("gift-id").value="";$("gift-form-title").textContent="Add a gift";$("gift-save-message").hidden=true;$("gift-save-message").textContent=""});
+  $("gift-cancel").addEventListener("click",()=>{$("gift-form").reset();$("gift-category").value="Other";$("gift-id").value="";$("gift-form-title").textContent="Add a gift";$("gift-save-message").hidden=true;$("gift-save-message").textContent=""});
   $("gift-form").addEventListener("submit",async e=>{
     e.preventDefault();$("gift-save-message").hidden=true;$("gift-save-message").textContent="";if(!isAdmin()){$("gift-save-message").textContent="Admin access required. Please sign in again.";$("gift-save-message").hidden=false;return}
-    const id=$("gift-id").value,payload={name:$("gift-name").value.trim(),description:$("gift-description").value.trim(),price:Number($("gift-price").value),supplier:$("gift-supplier").value.trim(),category:$("gift-category").value,url:$("gift-url").value.trim(),imageUrl:$("gift-image").value.trim()||"",inspiration:$("gift-inspo").value.trim(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
+    const id=$("gift-id").value,payload={name:$("gift-name").value.trim(),description:$("gift-description").value.trim(),price:Number($("gift-price").value),supplier:$("gift-supplier").value.trim(),category:$("gift-category").value,order:id?(gifts.find(g=>g.id===id)?.order??gifts.length):gifts.length,url:$("gift-url").value.trim(),imageUrl:$("gift-image").value.trim()||"",inspiration:$("gift-inspo").value.trim(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
     try{if(id)await db.collection("gifts").doc(id).update(payload);else await db.collection("gifts").add({...payload,createdAt:firebase.firestore.FieldValue.serverTimestamp()});toast(id?"Gift updated!":"Gift added!");$("gift-save-message").textContent=id?"Gift updated successfully!":"Gift added successfully!";$("gift-save-message").classList.remove("error");$("gift-save-message").classList.add("success");$("gift-save-message").hidden=false;$("gift-form").reset();$("gift-id").value="";$("gift-form-title").textContent="Add a gift";await load();adminList()}
     catch(err){$("gift-save-message").textContent="Couldn't save gift: "+(err.message||"Please check your connection and Firebase settings.");$("gift-save-message").classList.remove("success");$("gift-save-message").classList.add("error");$("gift-save-message").hidden=false;}
   });
@@ -187,7 +187,7 @@
   audio.volume=.55;
   function showTrackTitle(title){
     $("now-playing-title").textContent=title;
-    $("audio-current-title").textContent=title;
+    $("audio-current-title").textContent=title;$("mini-player-title").textContent=title;
     $("now-playing-title").classList.remove("scrolling");
     requestAnimationFrame(()=>{const el=$("now-playing-title");if(el.scrollWidth>el.parentElement.clientWidth)el.classList.add("scrolling")});
   }
@@ -227,7 +227,7 @@
   function playTrack(i,tryPlay=true){
     trackIndex=(i+tracks.length)%tracks.length;
     const track=tracks[trackIndex];
-    showTrackTitle(track.title);updateTrackButtons();
+    showTrackTitle(track.title);updateTrackButtons();$("mini-player").hidden=panelOpen;
     audio.pause();audio.src=track.file;audio.load();
     if(tryPlay){
       audio.play().then(()=>{$("music-note").textContent="Now playing.";setPlayerState(true)})
