@@ -83,7 +83,10 @@
   async function markBought(id){
     if(!db||!currentUser)return;
     const ref=db.collection("giftHolds").doc(id);
-    try{await db.runTransaction(async tx=>{const snap=await tx.get(ref);if(!snap.exists||snap.data().status!=="held")throw new Error("This gift is no longer on hold.");const data=snap.data();if(data.ownerUid!==currentUser.uid&&!isAdmin())throw new Error("Only the person who reserved this gift or the admin can mark it bought.");tx.update(ref,{status:"bought",expiresAt:null,updatedAt:firebase.firestore.FieldValue.serverTimestamp()})});toast("Marked as bought — thanks for making Christmas special!");await load()}
+    try{await db.runTransaction(async tx=>{const snap=await tx.get(ref);if(!snap.exists){if(!isAdmin())throw new Error("This gift is no longer on hold.");tx.set(ref,{status:"bought",holdKind:null,ownerUid:currentUser.uid,expiresAt:null,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});return}
+      if(snap.data().status!=="held")throw new Error("This gift is no longer on hold.");
+      const data=snap.data();if(data.ownerUid!==currentUser.uid&&!isAdmin())throw new Error("Only the person who reserved this gift or the admin can mark it bought.");
+      tx.update(ref,{status:"bought",expiresAt:null,updatedAt:firebase.firestore.FieldValue.serverTimestamp()})});toast("Marked as bought — thanks for making Christmas special!");await load()}
     catch(e){toast(e.message)}
   }
   $("admin-open").addEventListener("click",()=>{$("admin-dialog").showModal();checkSession()});
@@ -127,6 +130,7 @@
   function updateTrackButtons(){$("music-track-list").innerHTML=tracks.map((t,i)=>'<button type="button" class="music-track '+(i===trackIndex?"active":"")+'" data-track="'+i+'"><span class="track-number">'+String(i+1).padStart(2,"0")+'</span><span class="track-name">'+escapeHTML(t.title)+'</span><span class="track-play">'+(i===trackIndex?"♫":"▶")+'</span></button>').join("")}
   function loadTrack(i,autoplay=true){trackIndex=(i+tracks.length)%tracks.length;const t=tracks[trackIndex];showTrackTitle(t.title);updateTrackButtons();if(ytReady&&ytPlayer){if(autoplay)ytPlayer.loadVideoById(t.id);else ytPlayer.cueVideoById(t.id)}else{window.pendingChristmasTrack={id:t.id,autoplay}}}
   window.onYouTubeIframeAPIReady=()=>{ytPlayer=new YT.Player("youtube-player",{width:"100%",height:"100%",videoId:tracks[0].id,playerVars:{playsinline:1,rel:0,origin:location.origin},events:{onReady:()=>{ytReady=true;if(window.pendingChristmasTrack){const p=window.pendingChristmasTrack;delete window.pendingChristmasTrack;p.autoplay?ytPlayer.loadVideoById(p.id):ytPlayer.cueVideoById(p.id)}else{const d=ytPlayer.getVideoData();if(d&&d.title)showTrackTitle(d.title)}},onStateChange:e=>{if(e.data===YT.PlayerState.PLAYING){const d=ytPlayer.getVideoData();if(d&&d.title)showTrackTitle(d.title);$("now-playing-state").textContent="♫"}else if(e.data===YT.PlayerState.PAUSED||e.data===YT.PlayerState.ENDED){$("now-playing-state").textContent="▶";if(e.data===YT.PlayerState.ENDED)loadTrack(trackIndex+1)}}}})};
+  const ytApi=document.createElement("script");ytApi.src="https://www.youtube.com/iframe_api";document.head.appendChild(ytApi);
   function toggleMusicPanel(){panelOpen=!panelOpen;$("music-panel").hidden=!panelOpen;if(panelOpen&&ytReady&&ytPlayer&&ytPlayer.getPlayerState()===YT.PlayerState.UNSTARTED)loadTrack(trackIndex,false)}
   $("music-toggle").addEventListener("click",toggleMusicPanel);$("now-playing").addEventListener("click",toggleMusicPanel);$("now-playing").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();toggleMusicPanel()}});
   $("music-close").addEventListener("click",()=>{panelOpen=false;$("music-panel").hidden=true});
