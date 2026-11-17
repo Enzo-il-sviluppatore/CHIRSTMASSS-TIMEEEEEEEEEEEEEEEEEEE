@@ -47,7 +47,7 @@
       const st=getStatus(g),held=st.status==="held",bought=st.status==="bought",label=bought?"Bought":held?"On hold":"Available";
       const ownsHold=held&&currentUser&&st.ownerUid===currentUser.uid;
       const image=g.imageUrl?'<img src="'+escapeHTML(g.imageUrl)+'" alt="'+escapeHTML(g.name)+'" loading="lazy" onerror="this.remove()">':'<span class="gift-emoji">🎁</span>';
-      const boughtButton='<button class="maybe" data-action="bought" data-id="'+g.id+'" '+(bought||held&&!ownsHold?"disabled":"")+'>'+(bought?"Bought":"✓ Bought")+'</button>';
+      const boughtButton='<button class="maybe" data-action="bought" data-id="'+g.id+'" '+(bought||(!isAdmin()&&!(held&&ownsHold))?"disabled":"")+'>'+(bought?"Bought":"✓ Bought")+'</button>';
       return '<article class="gift-card" data-gift-card="'+g.id+'" tabindex="0" role="button" aria-label="View details for '+escapeHTML(g.name)+'"><div class="gift-image">'+image+'</div><div class="gift-card-body"><div class="gift-meta"><span class="supplier">'+escapeHTML(g.supplier||"Gift idea")+'</span><span class="status '+(bought?"bought":held?"held":"available")+'">'+label+'</span></div><h3>'+escapeHTML(g.name)+'</h3><div class="gift-bottom"><strong class="gift-price">'+money(g.price)+'</strong></div><div class="gift-actions">'+boughtButton+'<button class="maybe" data-action="maybe" data-id="'+g.id+'" '+(held||bought?"disabled":"")+'>'+(held?"Reserved":bought?"Bought":"Maybe")+'</button></div>'+(held?'<p class="hold-info">Someone is thinking of buying this item · '+timeLeft(st.expiresAt)+'</p>':"")+'</div></article>';
     }).join("");
   }
