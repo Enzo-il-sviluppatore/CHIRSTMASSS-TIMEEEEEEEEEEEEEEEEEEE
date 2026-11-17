@@ -47,20 +47,35 @@
       const st=getStatus(g),held=st.status==="held",bought=st.status==="bought",label=bought?"Bought":held?"On hold":"Available";
       const ownsHold=held&&currentUser&&st.ownerUid===currentUser.uid;
       const image=g.imageUrl?'<img src="'+escapeHTML(g.imageUrl)+'" alt="'+escapeHTML(g.name)+'" loading="lazy" onerror="this.remove()">':'<span class="gift-emoji">🎁</span>';
-      const boughtButton=ownsHold?'<button class="maybe" data-action="bought" data-id="'+g.id+'">Mark bought</button>':"";
-      return '<article class="gift-card"><div class="gift-image">'+image+'</div><div class="gift-card-body"><div class="gift-meta"><span class="supplier">'+escapeHTML(g.supplier||"Gift idea")+'</span><span class="status '+(bought?"bought":held?"held":"available")+'">'+label+'</span></div><h3>'+escapeHTML(g.name)+'</h3><p class="gift-description">'+escapeHTML(g.description||"A little something for Christmas.")+'</p><div class="gift-bottom"><strong class="gift-price">'+money(g.price)+'</strong></div><div class="gift-actions"><button class="purchase" data-action="purchase" data-id="'+g.id+'" '+(held||bought?"disabled":"")+'>'+(held?"On hold":bought?"Purchased":"🎁 Purchase")+'</button><button class="maybe" data-action="maybe" data-id="'+g.id+'" '+(held||bought?"disabled":"")+'>'+(held?"Reserved":bought?"Bought":"Maybe")+'</button>'+boughtButton+'</div>'+(held?'<p class="hold-info">Someone is thinking of buying this item · '+timeLeft(st.expiresAt)+'</p>':"")+'<a class="product-link" href="'+escapeHTML(g.url)+'" target="_blank" rel="noopener noreferrer">View at '+escapeHTML(g.supplier||"the store")+' ↗</a></div></article>';
+      const boughtButton='<button class="maybe" data-action="bought" data-id="'+g.id+'" '+(bought||held&&!ownsHold?"disabled":"")+'>'+(bought?"Bought":"✓ Bought")+'</button>';
+      return '<article class="gift-card" data-gift-card="'+g.id+'" tabindex="0" role="button" aria-label="View details for '+escapeHTML(g.name)+'"><div class="gift-image">'+image+'</div><div class="gift-card-body"><div class="gift-meta"><span class="supplier">'+escapeHTML(g.supplier||"Gift idea")+'</span><span class="status '+(bought?"bought":held?"held":"available")+'">'+label+'</span></div><h3>'+escapeHTML(g.name)+'</h3><div class="gift-bottom"><strong class="gift-price">'+money(g.price)+'</strong></div><div class="gift-actions">'+boughtButton+'<button class="maybe" data-action="maybe" data-id="'+g.id+'" '+(held||bought?"disabled":"")+'>'+(held?"Reserved":bought?"Bought":"Maybe")+'</button></div>'+(held?'<p class="hold-info">Someone is thinking of buying this item · '+timeLeft(st.expiresAt)+'</p>':"")+'</div></article>';
     }).join("");
   }
   function timeLeft(value){const date=stampDate(value);if(!date)return"24-hour hold";const ms=Math.max(0,date-Date.now()),h=Math.floor(ms/3600000),m=Math.floor(ms%3600000/60000);return h+"h "+m+"m left"}
   ["search","sort","min-price","max-price","supplier-filter"].forEach(id=>$(id).addEventListener(id==="search"?"input":"change",render));
   $("clear-filters").addEventListener("click",()=>{$("search").value="";$("sort").value="featured";$("min-price").value="";$("max-price").value="";$("supplier-filter").value="";render()});
+  function openGiftDetails(g){
+    if(!g)return;
+    const image=g.imageUrl?'<img class="details-image" src="'+escapeHTML(g.imageUrl)+'" alt="'+escapeHTML(g.name)+'" onerror="this.style.display=\'none\'">':"";
+    const st=getStatus(g),bought=st.status==="bought",held=st.status==="held";
+    $("gift-details-content").innerHTML=image+'<p class="eyebrow">'+escapeHTML(g.supplier||"Gift idea")+'</p><h2>'+escapeHTML(g.name)+'</h2><p class="details-price">'+money(g.price)+'</p><p class="details-description">'+escapeHTML(g.description||"No description added.")+'</p>'+(g.inspiration?'<div class="details-extra"><h3>More information</h3><p>'+escapeHTML(g.inspiration)+'</p></div>':"")+'<p class="details-status">Status: '+(bought?"Bought":held?"On hold":"Available")+'</p>'+(g.url?'<a class="primary-button details-link" href="'+escapeHTML(g.url)+'" target="_blank" rel="noopener noreferrer">View product at '+escapeHTML(g.supplier||"the store")+' ↗</a>':"");
+    $("gift-details-dialog").showModal();
+  }
+  $("gift-details-close").addEventListener("click",()=>$("gift-details-dialog").close());
   $("wishlist-grid").addEventListener("click",async e=>{
-    const b=e.target.closest("button[data-action]");if(!b)return;
-    if(b.dataset.action==="bought"){await markBought(b.dataset.id);return}
-    const gift=gifts.find(g=>g.id===b.dataset.id);if(!gift)return;selectedGift=gift;selectedKind=b.dataset.action;
-    $("hold-title").textContent=selectedKind==="purchase"?"Reserve this gift?":"Maybe this one?";
-    $("hold-description").textContent="This lets everyone know someone is thinking about this gift. The hold lasts 24 hours.";
-    $("guest-name").value="";$("hold-dialog").showModal();
+    const b=e.target.closest("button[data-action]");
+    if(b){
+      if(b.dataset.action==="bought"){await markBought(b.dataset.id);return}
+      const gift=gifts.find(g=>g.id===b.dataset.id);if(!gift)return;selectedGift=gift;selectedKind=b.dataset.action;
+      $("hold-title").textContent="Maybe this one?";
+      $("hold-description").textContent="This lets everyone know someone is thinking about this gift. The hold lasts 24 hours.";
+      $("guest-name").value="";$("hold-dialog").showModal();return;
+    }
+    const card=e.target.closest("[data-gift-card]");if(card)openGiftDetails(gifts.find(g=>g.id===card.dataset.giftCard));
+  });
+  $("wishlist-grid").addEventListener("keydown",e=>{
+    const card=e.target.closest("[data-gift-card]");
+    if(card&&(e.key==="Enter"||e.key===" ")){e.preventDefault();openGiftDetails(gifts.find(g=>g.id===card.dataset.giftCard))}
   });
   $("hold-form").addEventListener("submit",async e=>{
     if(e.submitter?.value!=="confirm")return;e.preventDefault();
