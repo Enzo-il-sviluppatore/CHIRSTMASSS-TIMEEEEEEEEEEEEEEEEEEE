@@ -10,12 +10,12 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=darkmode-fix-1">
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
   <script src="config.js"></script>
-  <script defer src="app.js"></script>
+  <script defer src="app.js?v=darkmode-fix-1"></script>
 </head>
 <body>
   <div id="welcome" class="welcome-screen" aria-live="polite">
@@ -92,5 +92,28 @@
   </dialog>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    (() => {
+      const button = document.getElementById("theme-toggle");
+      if (!button) return;
+      const applyTheme = theme => {
+        document.documentElement.dataset.theme = theme;
+        const dark = theme === "dark";
+        button.innerHTML = dark ? "☀ <span>Light mode</span>" : "☾ <span>Dark mode</span>";
+        button.setAttribute("aria-label", dark ? "Switch to light mode" : "Switch to dark mode");
+        button.setAttribute("aria-pressed", String(dark));
+      };
+      let theme = "light";
+      try { theme = localStorage.getItem("christmas-theme") || "light"; } catch (_) {}
+      applyTheme(theme === "dark" ? "dark" : "light");
+      button.addEventListener("click", () => {
+        const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+        applyTheme(next);
+        try { localStorage.setItem("christmas-theme", next); } catch (_) {}
+      });
+    })();
+  </script>
+
 </body>
 </html>
