@@ -1,6 +1,22 @@
 (() => {
   "use strict";
   const $ = id => document.getElementById(id);
+  const themeButton = $("theme-toggle");
+  function applyTheme(theme){
+    document.documentElement.dataset.theme=theme;
+    const dark=theme==="dark";
+    themeButton.innerHTML=dark?"☀ <span>Light mode</span>":"☾ <span>Dark mode</span>";
+    themeButton.setAttribute("aria-label",dark?"Switch to light mode":"Switch to dark mode");
+    themeButton.setAttribute("aria-pressed",String(dark));
+  }
+  let savedTheme="light";
+  try{savedTheme=localStorage.getItem("christmas-theme")||"light"}catch(e){}
+  applyTheme(savedTheme==="dark"?"dark":"light");
+  themeButton.addEventListener("click",()=>{
+    const next=document.documentElement.dataset.theme==="dark"?"light":"dark";
+    applyTheme(next);
+    try{localStorage.setItem("christmas-theme",next)}catch(e){}
+  });
   const cfg = window.CHRISTMAS_CONFIG || {};
   const greetings = ["Merry Christmas!","Welcome to the holiday magic!","Season's greetings!","It's the most wonderful time of the year!","Happy holidays — come on in!","A little Christmas cheer, just for you!"];
   $("welcome-message").textContent = greetings[Math.floor(Math.random()*greetings.length)];
