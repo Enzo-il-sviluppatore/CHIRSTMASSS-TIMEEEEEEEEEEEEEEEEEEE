@@ -135,3 +135,78 @@
 :root[data-theme="dark"] .snow-layer{opacity:.95}
 :root[data-theme="dark"] .music-panel{background:#0b2017}
 :root[data-theme="dark"] .welcome-screen{background:radial-gradient(ellipse at center,#193f2d,#0b2017 70%)}
+
+
+/* Dark-mode consistency and cleaner Christmas header */
+.hero{
+  background:linear-gradient(135deg,#123b2b 0%,#194b35 55%,#123b2b 100%);
+}
+.hero:before,.hero:after{display:none}
+
+/* Keep the inspiration section and its text readable in both themes. */
+:root[data-theme="dark"] .inspiration-section{
+  background:#17251e;
+  color:var(--ink);
+}
+:root[data-theme="dark"] .inspiration-section h2,
+:root[data-theme="dark"] .inspiration-section .eyebrow,
+:root[data-theme="dark"] .inspo-intro{color:var(--ink)}
+:root[data-theme="dark"] .inspo-content{
+  background:#202f26;
+  color:#e2ebe4;
+  border-color:#3b5043;
+}
+
+/* Give the entire admin dialog a consistent dark surface, not just its inputs. */
+:root[data-theme="dark"] .admin-modal{
+  background:#17251e;
+  color:#e6eee8;
+}
+:root[data-theme="dark"] .admin-modal h2,
+:root[data-theme="dark"] .admin-modal h3,
+:root[data-theme="dark"] .admin-modal .eyebrow,
+:root[data-theme="dark"] .admin-modal label{
+  color:#d5e8dc;
+}
+:root[data-theme="dark"] .admin-modal .muted,
+:root[data-theme="dark"] .admin-modal small,
+:root[data-theme="dark"] .admin-modal .form-message{
+  color:#b5c4ba;
+}
+:root[data-theme="dark"] .gift-form{
+  background:#202f26;
+  border:1px solid #3b5043;
+}
+:root[data-theme="dark"] .gift-form h3{color:#e2ebe4}
+:root[data-theme="dark"] .gift-form input,
+:root[data-theme="dark"] .gift-form textarea,
+:root[data-theme="dark"] .gift-form select,
+:root[data-theme="dark"] .admin-modal input,
+:root[data-theme="dark"] .admin-modal textarea,
+:root[data-theme="dark"] .admin-modal select{
+  background:#111a16;
+  color:#e6eee8;
+  border-color:#46594c;
+}
+:root[data-theme="dark"] .admin-gift-row{
+  background:#202f26;
+  color:#e6eee8;
+  border-color:#3b5043;
+}
+:root[data-theme="dark"] .admin-gift-row strong{color:#e2ebe4}
+:root[data-theme="dark"] .admin-gift-row small{color:#b5c4ba}
+:root[data-theme="dark"] .admin-gift-row button{
+  background:#34463b;
+  color:#e6eee8;
+}
+:root[data-theme="dark"] .admin-stat{
+  background:#202f26;
+  border-color:#3b5043;
+}
+:root[data-theme="dark"] .admin-stat strong{color:#e2ebe4}
+:root[data-theme="dark"] .admin-stat span{color:#b5c4ba}
+:root[data-theme="dark"] .admin-modal .secondary-button{
+  background:#34463b;
+  color:#e6eee8;
+}
+:root[data-theme="dark"] .admin-modal .modal-close{color:#c4d1c8}
