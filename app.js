@@ -114,11 +114,11 @@
     catch(err){$("admin-message").textContent=err.message}
   });
   $("admin-signout").addEventListener("click",async()=>{await auth.signOut();await ensureAnonymous();currentUser=auth.currentUser;$("admin-panel").hidden=true;$("admin-login-form").hidden=false;toast("Signed out.");await load()});
-  function adminList(){$("admin-gift-list").innerHTML=gifts.map(g=>'<div class="admin-gift-row"><div><strong>'+escapeHTML(g.name)+'</strong><small>'+money(g.price)+' · '+escapeHTML(g.supplier||"No store")+'</small></div><div><button data-edit="'+g.id+'">Edit</button><button data-bought="'+g.id+'">Mark bought</button><button data-delete="'+g.id+'">Delete</button></div></div>').join("")||"<p>No gifts yet.</p>"}
+  function adminList(){$("admin-gift-list").innerHTML=gifts.map(g=>{const bought=getStatus(g).status==="bought";return '<div class="admin-gift-row"><div><strong>'+escapeHTML(g.name)+'</strong><small>'+money(g.price)+' · '+escapeHTML(g.supplier||"No store")+'</small></div><div><button data-edit="'+g.id+'">Edit</button><button data-bought="'+g.id+'">'+(bought?"Mark not bought":"Mark bought")+'</button><button data-delete="'+g.id+'">Delete</button></div></div>'}).join("")||"<p>No gifts yet.</p>"}
   $("admin-gift-list").addEventListener("click",async e=>{
     const edit=e.target.dataset.edit,del=e.target.dataset.delete,bought=e.target.dataset.bought;
     if(edit){const g=gifts.find(x=>x.id===edit);if(!g)return;$("gift-save-message").hidden=true;$("gift-save-message").textContent="";$("gift-id").value=g.id;$("gift-name").value=g.name;$("gift-description").value=g.description||"";$("gift-price").value=g.price;$("gift-supplier").value=g.supplier||"";$("gift-url").value=g.url;$("gift-image").value=g.imageUrl||"";$("gift-inspo").value=g.inspiration||"";$("gift-form-title").textContent="Edit gift";$("gift-form").scrollIntoView({behavior:"smooth"})}
-    if(bought)await markBought(bought);
+    if(bought){if(!isAdmin()){toast("Admin access required.");return}const status=getStatus(gifts.find(g=>g.id===bought)||{}).status;if(status==="bought"){try{await db.collection("giftHolds").doc(bought).delete();toast("Gift marked as not bought.");await load()}catch(err){toast(err.message)}}else{await markBought(bought)}}
     if(del&&confirm("Delete this gift from the wishlist?")){try{await db.collection("gifts").doc(del).delete();await db.collection("giftHolds").doc(del).delete();toast("Gift deleted.");await load()}catch(err){toast(err.message)}}
   });
   $("gift-cancel").addEventListener("click",()=>{$("gift-form").reset();$("gift-id").value="";$("gift-form-title").textContent="Add a gift";$("gift-save-message").hidden=true;$("gift-save-message").textContent=""});
