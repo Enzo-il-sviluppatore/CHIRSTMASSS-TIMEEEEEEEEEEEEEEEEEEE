@@ -81,7 +81,7 @@
       $("hold-title").textContent=buying?"Buying this gift?":"Maybe this one?";
       $("hold-description").textContent=(buying?"I use your name so when it comes time to send you a text to thank you, I dont have to remember I can just look. And no, I do not check to see what I'm getting.":"This lets everyone know someone is thinking about this gift. The hold lasts 24 hours.")+" You'll sign in with Google to continue.";
       $("guest-name").required=buying;
-      $("hold-confirm").textContent=buying?"Confirm bought":"Confirm hold";
+      $("hold-confirm").textContent="Continue with Google";
       $("hold-dialog").showModal();return;
     }
     const card=e.target.closest("[data-gift-card]");if(card)openGiftDetails(gifts.find(g=>g.id===card.dataset.giftCard));
@@ -93,9 +93,7 @@
   $("hold-form").addEventListener("submit",async e=>{
     if(e.submitter?.value!=="confirm")return;e.preventDefault();
     if(!selectedGift||!db){toast("Firebase hasn't been connected yet.");$("hold-dialog").close();return}
-    const guestName=$("guest-name").value.trim();
-    if(selectedKind==="bought"&&!guestName){$("guest-name").focus();toast("Please enter your name.");return}
-    $("hold-confirm").disabled=true;
+        $("hold-confirm").disabled=true;
     try{
       await ensureGoogleSignIn();
       if(!$("guest-name").value.trim()&&currentUser.displayName)$("guest-name").value=currentUser.displayName;
