@@ -12,5 +12,5 @@ window.CHRISTMAS_CONFIG = {
 };
   },
   // Your Firebase Authentication user's UID. Firestore rules use this to protect admin writes.
-  adminUid: "YOUR_ADMIN_USER_UID"
+  adminUid: "SkgFX8eMrpP5NLt4sIzdL9NxAXC3"
 };
