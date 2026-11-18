@@ -17,17 +17,15 @@
   function setCountdown(){const now=new Date(),year=now.getMonth()===11&&now.getDate()>25?now.getFullYear()+1:now.getFullYear(),ms=Math.max(0,new Date(year,11,25)-now),days=Math.floor(ms/86400000),hours=Math.floor(ms%86400000/3600000),minutes=Math.floor(ms%3600000/60000),seconds=Math.floor(ms%60000/1000);$("countdown").textContent=ms===0?"Merry Christmas! 🎄":days+" days · "+hours+"h "+minutes+"m "+seconds+"s until Christmas 🎁"}
   setCountdown();setInterval(setCountdown,1000);
   const snowLayer=document.querySelector(".snow-layer");
-  // The snow layer spans the whole document, so normal page scrolling carries flakes upward naturally.
+  // Every flake starts at the document's top edge and travels all the way to its bottom.
   if(snowLayer&&!snowLayer.querySelector(".snowflake")){
     const snowSymbols=["❄","❅","❆","✻"];
     const updateSnowHeight=()=>{
       const pageHeight=Math.max(document.documentElement.scrollHeight,window.innerHeight);
       snowLayer.style.height=pageHeight+"px";
-      snowLayer.querySelectorAll(".snowflake").forEach((flake,i)=>{
-        if(!flake.dataset.positioned){
-          flake.style.top=(Math.random()*pageHeight)+"px";
-          flake.dataset.positioned="true";
-        }
+      snowLayer.querySelectorAll(".snowflake").forEach(flake=>{
+        flake.style.setProperty("--fall-distance",pageHeight+"px");
+        flake.style.animationDuration=Math.max(24,Math.min(90,pageHeight/70))+"s";
       });
     };
     for(let i=0;i<110;i++){
@@ -36,9 +34,9 @@
       flake.setAttribute("aria-hidden","true");
       flake.textContent=snowSymbols[i%snowSymbols.length];
       flake.style.left=((i*37)%100)+"%";
+      flake.style.top="0px";
       flake.style.fontSize=(19+(i%5)*5)+"px";
-      flake.style.animationDuration=(13+(i%8)*2)+"s";
-      flake.style.animationDelay=(-i*1.31)+"s";
+      flake.style.animationDelay=(i*0.12)+"s";
       flake.style.setProperty("--drift",(((i*19)%90)-45)+"px");
       snowLayer.appendChild(flake);
     }
