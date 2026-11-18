@@ -17,10 +17,20 @@
   function setCountdown(){const now=new Date(),year=now.getMonth()===11&&now.getDate()>25?now.getFullYear()+1:now.getFullYear(),ms=Math.max(0,new Date(year,11,25)-now),days=Math.floor(ms/86400000),hours=Math.floor(ms%86400000/3600000),minutes=Math.floor(ms%3600000/60000),seconds=Math.floor(ms%60000/1000);$("countdown").textContent=ms===0?"Merry Christmas! 🎄":days+" days · "+hours+"h "+minutes+"m "+seconds+"s until Christmas 🎁"}
   setCountdown();setInterval(setCountdown,1000);
   const snowLayer=document.querySelector(".snow-layer");
-  // Build the flakes directly as text so snowfall does not depend on an external image loading.
+  // The snow layer spans the whole document, so normal page scrolling carries flakes upward naturally.
   if(snowLayer&&!snowLayer.querySelector(".snowflake")){
     const snowSymbols=["❄","❅","❆","✻"];
-    for(let i=0;i<38;i++){
+    const updateSnowHeight=()=>{
+      const pageHeight=Math.max(document.documentElement.scrollHeight,window.innerHeight);
+      snowLayer.style.height=pageHeight+"px";
+      snowLayer.querySelectorAll(".snowflake").forEach((flake,i)=>{
+        if(!flake.dataset.positioned){
+          flake.style.top=(Math.random()*pageHeight)+"px";
+          flake.dataset.positioned="true";
+        }
+      });
+    };
+    for(let i=0;i<110;i++){
       const flake=document.createElement("span");
       flake.className="snowflake";
       flake.setAttribute("aria-hidden","true");
@@ -31,6 +41,13 @@
       flake.style.animationDelay=(-i*1.31)+"s";
       flake.style.setProperty("--drift",(((i*19)%90)-45)+"px");
       snowLayer.appendChild(flake);
+    }
+    updateSnowHeight();
+    window.addEventListener("load",updateSnowHeight,{once:true});
+    window.addEventListener("resize",updateSnowHeight);
+    if("ResizeObserver" in window){
+      const snowResizeObserver=new ResizeObserver(updateSnowHeight);
+      snowResizeObserver.observe(document.body);
     }
   }
   $("snow-toggle").addEventListener("click",()=>{const off=snowLayer.classList.toggle("snow-off");$("snow-toggle").innerHTML=off?"<span>Snow off</span>":"<span>Snow</span>"});
