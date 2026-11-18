@@ -37,18 +37,20 @@
   const themeToggle=$("theme-toggle");
   function applyTheme(theme){
     const dark=theme==="dark";
-    document.documentElement.setAttribute("data-theme",dark?"dark":"light");
+    if(dark) document.documentElement.setAttribute("data-theme","dark");
+    else document.documentElement.removeAttribute("data-theme");
     themeToggle.innerHTML=dark?"☀ <span>Light mode</span>":"☾ <span>Dark mode</span>";
     themeToggle.setAttribute("aria-label",dark?"Switch to light mode":"Switch to dark mode");
     themeToggle.setAttribute("aria-pressed",String(dark));
+    return dark;
   }
   let savedTheme="light";
   try{savedTheme=localStorage.getItem("christmas-theme")==="dark"?"dark":"light"}catch(e){}
-  applyTheme(savedTheme);
+  let darkMode=applyTheme(savedTheme);
   themeToggle.addEventListener("click",()=>{
-    const nextTheme=document.documentElement.getAttribute("data-theme")==="dark"?"light":"dark";
-    applyTheme(nextTheme);
-    try{localStorage.setItem("christmas-theme",nextTheme)}catch(e){}
+    darkMode=!darkMode;
+    applyTheme(darkMode?"dark":"light");
+    try{localStorage.setItem("christmas-theme",darkMode?"dark":"light")}catch(e){}
   });
   async function ensureGoogleSignIn(){
     if(!auth)throw new Error("Firebase is not configured yet.");
