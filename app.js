@@ -17,20 +17,19 @@
   function setCountdown(){const now=new Date(),year=now.getMonth()===11&&now.getDate()>25?now.getFullYear()+1:now.getFullYear(),ms=Math.max(0,new Date(year,11,25)-now),days=Math.floor(ms/86400000),hours=Math.floor(ms%86400000/3600000),minutes=Math.floor(ms%3600000/60000),seconds=Math.floor(ms%60000/1000);$("countdown").textContent=ms===0?"Merry Christmas! 🎄":days+" days · "+hours+"h "+minutes+"m "+seconds+"s until Christmas 🎁"}
   setCountdown();setInterval(setCountdown,1000);
   const snowLayer=document.querySelector(".snow-layer");
-  // Keep snowfall fixed to the viewport so it stays visible throughout the page.
+  // Build the flakes directly as text so snowfall does not depend on an external image loading.
   if(snowLayer&&!snowLayer.querySelector(".snowflake")){
-    for(let i=0;i<32;i++){
+    const snowSymbols=["❄","❅","❆","✻"];
+    for(let i=0;i<38;i++){
       const flake=document.createElement("span");
-      const sprite=i%9;
-      const col=sprite%3, row=Math.floor(sprite/3);
       flake.className="snowflake";
       flake.setAttribute("aria-hidden","true");
+      flake.textContent=snowSymbols[i%snowSymbols.length];
       flake.style.left=((i*37)%100)+"%";
-      flake.style.width=(24+(i%5)*11)+"px";
+      flake.style.fontSize=(19+(i%5)*5)+"px";
       flake.style.animationDuration=(13+(i%8)*2)+"s";
       flake.style.animationDelay=(-i*1.31)+"s";
       flake.style.setProperty("--drift",(((i*19)%90)-45)+"px");
-      flake.style.backgroundPosition=(col*50)+"% "+(row*50)+"%";
       snowLayer.appendChild(flake);
     }
   }
