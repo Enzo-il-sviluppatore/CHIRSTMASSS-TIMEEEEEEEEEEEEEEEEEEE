@@ -32,6 +32,24 @@
     }
   }
   $("snow-toggle").addEventListener("click",()=>{const off=snowLayer.classList.toggle("snow-off");$("snow-toggle").innerHTML=off?"<span>Snow off</span>":"<span>Snow</span>"});
+
+  // Dark mode: remember the visitor's choice and keep the button label in sync.
+  const themeToggle=$("theme-toggle");
+  function applyTheme(theme){
+    const dark=theme==="dark";
+    document.documentElement.setAttribute("data-theme",dark?"dark":"light");
+    themeToggle.innerHTML=dark?"☀ <span>Light mode</span>":"☾ <span>Dark mode</span>";
+    themeToggle.setAttribute("aria-label",dark?"Switch to light mode":"Switch to dark mode");
+    themeToggle.setAttribute("aria-pressed",String(dark));
+  }
+  let savedTheme="light";
+  try{savedTheme=localStorage.getItem("christmas-theme")==="dark"?"dark":"light"}catch(e){}
+  applyTheme(savedTheme);
+  themeToggle.addEventListener("click",()=>{
+    const nextTheme=document.documentElement.getAttribute("data-theme")==="dark"?"light":"dark";
+    applyTheme(nextTheme);
+    try{localStorage.setItem("christmas-theme",nextTheme)}catch(e){}
+  });
   async function ensureGoogleSignIn(){
     if(!auth)throw new Error("Firebase is not configured yet.");
     if(isAdmin())return currentUser;
