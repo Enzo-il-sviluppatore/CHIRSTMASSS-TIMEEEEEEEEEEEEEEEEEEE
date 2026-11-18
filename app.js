@@ -17,39 +17,18 @@
   function setCountdown(){const now=new Date(),year=now.getMonth()===11&&now.getDate()>25?now.getFullYear()+1:now.getFullYear(),ms=Math.max(0,new Date(year,11,25)-now),days=Math.floor(ms/86400000),hours=Math.floor(ms%86400000/3600000),minutes=Math.floor(ms%3600000/60000),seconds=Math.floor(ms%60000/1000);$("countdown").textContent=ms===0?"Merry Christmas! 🎄":days+" days · "+hours+"h "+minutes+"m "+seconds+"s until Christmas 🎁"}
   setCountdown();setInterval(setCountdown,1000);
   const snowLayer=document.querySelector(".snow-layer");
-  // A staggered loop keeps snow moving continuously across the entire document.
   if(snowLayer&&!snowLayer.querySelector(".snowflake")){
-    const snowSymbols=["❄","❅","❆","✻"];
-    const snowflakeCount=180;
-    const updateSnowHeight=()=>{
-      const pageHeight=Math.max(document.documentElement.scrollHeight,window.innerHeight);
-      const fallDuration=Math.max(30,Math.min(120,pageHeight/55));
-      snowLayer.style.height=pageHeight+"px";
-      snowLayer.querySelectorAll(".snowflake").forEach((flake,i)=>{
-        flake.style.setProperty("--fall-distance",pageHeight+"px");
-        flake.style.animationDuration=fallDuration+"s";
-        // Negative staggered delays distribute flakes from top to bottom immediately,
-        // then each one loops back to the top at evenly spaced intervals.
-        flake.style.animationDelay=(-((i/snowflakeCount)*fallDuration))+"s";
-      });
-    };
-    for(let i=0;i<snowflakeCount;i++){
+    const flakeArt='<svg viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M50 7V93M13 28.5L87 71.5M13 71.5L87 28.5M50 7l-9 12m9-12 9 12M50 93l-9-12m9 12 9-12M13 28.5l14 2m-14-2 6-12M87 71.5l-14-2m14 2-6 12M13 71.5l14-2m-14 2 6 12M87 28.5l-14 2m14-2-6-12"/></g><circle cx="50" cy="50" r="3" fill="currentColor"/></svg>';
+    for(let i=0;i<30;i++){
       const flake=document.createElement("span");
       flake.className="snowflake";
-      flake.setAttribute("aria-hidden","true");
-      flake.textContent=snowSymbols[i%snowSymbols.length];
+      flake.innerHTML=flakeArt;
       flake.style.left=((i*37)%100)+"%";
-      flake.style.top="0px";
-      flake.style.fontSize=(19+(i%5)*5)+"px";
+      flake.style.width=(13+(i%5)*7)+"px";
+      flake.style.animationDuration=(11+(i%8)*2)+"s";
+      flake.style.animationDelay=(-i*1.17)+"s";
       flake.style.setProperty("--drift",(((i*19)%90)-45)+"px");
       snowLayer.appendChild(flake);
-    }
-    updateSnowHeight();
-    window.addEventListener("load",updateSnowHeight,{once:true});
-    window.addEventListener("resize",updateSnowHeight);
-    if("ResizeObserver" in window){
-      const snowResizeObserver=new ResizeObserver(updateSnowHeight);
-      snowResizeObserver.observe(document.body);
     }
   }
   $("snow-toggle").addEventListener("click",()=>{const off=snowLayer.classList.toggle("snow-off");$("snow-toggle").innerHTML=off?"<span>Snow off</span>":"<span>Snow</span>"});
