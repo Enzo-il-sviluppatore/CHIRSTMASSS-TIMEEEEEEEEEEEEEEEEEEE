@@ -61,11 +61,18 @@
     document.getElementById("snow-debug-toggle").addEventListener("click", () => panel.classList.toggle("open"));
     document.getElementById("snow-debug-refresh").addEventListener("click", () => { checkSprite(); update(); });
     document.getElementById("snow-debug-test").addEventListener("click", () => {
-      const test = document.createElement("span");
+      const test = document.createElement("div");
+      test.id = "snow-debug-test-flake";
       test.setAttribute("aria-hidden", "true");
-      test.style.cssText = 'position:fixed!important;left:50%!important;top:42%!important;transform:translate(-50%,-50%)!important;width:100px!important;height:100px!important;display:block!important;z-index:99998!important;pointer-events:none!important;background-image:url("' + new URL("assets/snowflake-sprite.png?v=6", document.baseURI).href + '")!important;background-size:300% 300%!important;background-position:50% 50%!important;background-repeat:no-repeat!important;filter:drop-shadow(0 0 8px white)!important;';
+      test.style.cssText = 'position:fixed!important;left:50vw!important;top:42vh!important;transform:translate(-50%,-50%)!important;width:120px!important;height:120px!important;display:grid!important;place-items:center!important;z-index:2147483647!important;pointer-events:none!important;border:4px solid #ff00d4!important;background-color:#ff00d4!important;background-image:url("' + new URL("assets/snowflake-sprite.png?v=6", document.baseURI).href + '")!important;background-size:300% 300%!important;background-position:50% 50%!important;background-repeat:no-repeat!important;box-shadow:0 0 0 8px #00ffff,0 0 35px 18px #ff00d4!important;';
+      test.textContent = "TEST";
+      test.style.color = "#fff";
+      test.style.font = "bold 16px Arial";
+      test.style.textShadow = "0 1px 4px #000";
       document.body.appendChild(test);
-      setTimeout(() => test.remove(), 3500);
+      const testRect = test.getBoundingClientRect();
+      output.textContent += "\\nTest element: ADDED at " + Math.round(testRect.left) + ", " + Math.round(testRect.top) + " (" + Math.round(testRect.width) + "×" + Math.round(testRect.height) + ")";
+      setTimeout(() => test.remove(), 10000);
       update();
     });
     checkSprite();
