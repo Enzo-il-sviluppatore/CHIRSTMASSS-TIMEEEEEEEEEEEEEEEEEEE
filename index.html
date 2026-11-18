@@ -15,7 +15,13 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
   <script src="config.js"></script>
+  <script>
+    window.__snowDebugErrors = [];
+    window.addEventListener("error", event => window.__snowDebugErrors.push("JavaScript: " + (event.message || "Unknown error") + (event.filename ? " (" + event.filename.split("/").pop() + ":" + event.lineno + ")" : "")));
+    window.addEventListener("unhandledrejection", event => window.__snowDebugErrors.push("Promise: " + String(event.reason && event.reason.message || event.reason)));
+  </script>
   <script defer src="app.js?v=icy-snow-visible-3"></script>
+  <script defer src="snow-debug.js?v=1"></script>
 </head>
 <body>
   <div id="welcome" class="welcome-screen" aria-live="polite">
