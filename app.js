@@ -17,18 +17,23 @@
   function setCountdown(){const now=new Date(),year=now.getMonth()===11&&now.getDate()>25?now.getFullYear()+1:now.getFullYear(),ms=Math.max(0,new Date(year,11,25)-now),days=Math.floor(ms/86400000),hours=Math.floor(ms%86400000/3600000),minutes=Math.floor(ms%3600000/60000),seconds=Math.floor(ms%60000/1000);$("countdown").textContent=ms===0?"Merry Christmas! 🎄":days+" days · "+hours+"h "+minutes+"m "+seconds+"s until Christmas 🎁"}
   setCountdown();setInterval(setCountdown,1000);
   const snowLayer=document.querySelector(".snow-layer");
-  // Every flake starts at the document's top edge and travels all the way to its bottom.
+  // A staggered loop keeps snow moving continuously across the entire document.
   if(snowLayer&&!snowLayer.querySelector(".snowflake")){
     const snowSymbols=["❄","❅","❆","✻"];
+    const snowflakeCount=180;
     const updateSnowHeight=()=>{
       const pageHeight=Math.max(document.documentElement.scrollHeight,window.innerHeight);
+      const fallDuration=Math.max(30,Math.min(120,pageHeight/55));
       snowLayer.style.height=pageHeight+"px";
-      snowLayer.querySelectorAll(".snowflake").forEach(flake=>{
+      snowLayer.querySelectorAll(".snowflake").forEach((flake,i)=>{
         flake.style.setProperty("--fall-distance",pageHeight+"px");
-        flake.style.animationDuration=Math.max(24,Math.min(90,pageHeight/70))+"s";
+        flake.style.animationDuration=fallDuration+"s";
+        // Negative staggered delays distribute flakes from top to bottom immediately,
+        // then each one loops back to the top at evenly spaced intervals.
+        flake.style.animationDelay=(-((i/snowflakeCount)*fallDuration))+"s";
       });
     };
-    for(let i=0;i<110;i++){
+    for(let i=0;i<snowflakeCount;i++){
       const flake=document.createElement("span");
       flake.className="snowflake";
       flake.setAttribute("aria-hidden","true");
@@ -36,7 +41,6 @@
       flake.style.left=((i*37)%100)+"%";
       flake.style.top="0px";
       flake.style.fontSize=(19+(i%5)*5)+"px";
-      flake.style.animationDelay=(i*0.12)+"s";
       flake.style.setProperty("--drift",(((i*19)%90)-45)+"px");
       snowLayer.appendChild(flake);
     }
