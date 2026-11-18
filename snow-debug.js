@@ -71,7 +71,7 @@
       test.style.textShadow = "0 1px 4px #000";
       document.body.appendChild(test);
       const testRect = test.getBoundingClientRect();
-      output.textContent += "\\nTest element: ADDED at " + Math.round(testRect.left) + ", " + Math.round(testRect.top) + " (" + Math.round(testRect.width) + "×" + Math.round(testRect.height) + ")";
+      output.textContent += "\nTest element: ADDED at " + Math.round(testRect.left) + ", " + Math.round(testRect.top) + " (" + Math.round(testRect.width) + "×" + Math.round(testRect.height) + ")";
       setTimeout(() => test.remove(), 10000);
       update();
     });
