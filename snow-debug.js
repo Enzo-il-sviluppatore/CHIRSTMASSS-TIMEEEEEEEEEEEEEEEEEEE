@@ -53,10 +53,10 @@
         "First flake size: " + (rect ? Math.round(rect.width) + "×" + Math.round(rect.height) : "n/a"),
         "First flake position: " + (rect ? Math.round(rect.left) + ", " + Math.round(rect.top) : "n/a"),
         "Snow switched off: " + (layer ? layer.classList.contains("snow-off") : "n/a"),
-        "Recent JS errors: " + (errors.length ? "\\n  " + errors.join("\\n  ") : "none recorded"),
+        "Recent JS errors: " + (errors.length ? "\n  " + errors.join("\n  ") : "none recorded"),
         "Sprite URL: " + spriteUrl
       ];
-      output.textContent = lines.join("\\n");
+      output.textContent = lines.join("\n");
     };
     document.getElementById("snow-debug-toggle").addEventListener("click", () => panel.classList.toggle("open"));
     document.getElementById("snow-debug-refresh").addEventListener("click", () => { checkSprite(); update(); });
