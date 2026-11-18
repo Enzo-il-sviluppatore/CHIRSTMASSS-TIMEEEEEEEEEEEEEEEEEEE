@@ -17,30 +17,20 @@
   function setCountdown(){const now=new Date(),year=now.getMonth()===11&&now.getDate()>25?now.getFullYear()+1:now.getFullYear(),ms=Math.max(0,new Date(year,11,25)-now),days=Math.floor(ms/86400000),hours=Math.floor(ms%86400000/3600000),minutes=Math.floor(ms%3600000/60000),seconds=Math.floor(ms%60000/1000);$("countdown").textContent=ms===0?"Merry Christmas! 🎄":days+" days · "+hours+"h "+minutes+"m "+seconds+"s until Christmas 🎁"}
   setCountdown();setInterval(setCountdown,1000);
   const snowLayer=document.querySelector(".snow-layer");
-  // Counter-scroll the snowfall layer so it shifts upward by the page's scroll distance.
-  if(snowLayer){
-    let snowScrollFrame=0;
-    const syncSnowWithScroll=()=>{
-      if(snowScrollFrame)return;
-      snowScrollFrame=requestAnimationFrame(()=>{
-        snowScrollFrame=0;
-        snowLayer.style.setProperty("--snow-scroll-offset",window.scrollY+"px");
-      });
-    };
-    window.addEventListener("scroll",syncSnowWithScroll,{passive:true});
-    syncSnowWithScroll();
-  }
+  // Keep snowfall fixed to the viewport so it stays visible throughout the page.
   if(snowLayer&&!snowLayer.querySelector(".snowflake")){
-    const flakeArt='<svg viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M50 7V93M13 28.5L87 71.5M13 71.5L87 28.5M50 7l-9 12m9-12 9 12M50 93l-9-12m9 12 9-12M13 28.5l14 2m-14-2 6-12M87 71.5l-14-2m14 2-6 12M13 71.5l14-2m-14 2 6 12M87 28.5l-14 2m14-2-6-12"/></g><circle cx="50" cy="50" r="3" fill="currentColor"/></svg>';
-    for(let i=0;i<30;i++){
+    for(let i=0;i<32;i++){
       const flake=document.createElement("span");
+      const sprite=i%9;
+      const col=sprite%3, row=Math.floor(sprite/3);
       flake.className="snowflake";
-      flake.innerHTML=flakeArt;
+      flake.setAttribute("aria-hidden","true");
       flake.style.left=((i*37)%100)+"%";
-      flake.style.width=(13+(i%5)*7)+"px";
-      flake.style.animationDuration=(11+(i%8)*2)+"s";
-      flake.style.animationDelay=(-i*1.17)+"s";
+      flake.style.width=(24+(i%5)*11)+"px";
+      flake.style.animationDuration=(13+(i%8)*2)+"s";
+      flake.style.animationDelay=(-i*1.31)+"s";
       flake.style.setProperty("--drift",(((i*19)%90)-45)+"px");
+      flake.style.backgroundPosition=(col*50)+"% "+(row*50)+"%";
       snowLayer.appendChild(flake);
     }
   }
