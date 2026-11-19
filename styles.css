@@ -220,3 +220,12 @@
 /* Each flake enters at the top edge and travels the full document height. */
 .snowflake{top:0!important;animation-fill-mode:both}
 @keyframes snowflake-fall{from{transform:translate3d(0,-70px,0) rotate(0deg)}to{transform:translate3d(var(--drift),var(--snow-fall-distance,100vh),0) rotate(360deg)}}
+
+
+/* When open, keep the music controls docked directly below the sticky topbar. */
+.music-panel{
+  position:sticky;
+  top:var(--music-panel-sticky-top,76px);
+  z-index:9;
+  margin-top:0;
+}
