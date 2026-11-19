@@ -194,6 +194,7 @@
     finally{button.disabled=false}
   });
   $("signin-cancel").addEventListener("click",()=>{$("signin-dialog").close()});
+  $("signin-cancel-x").addEventListener("click",()=>{$("signin-dialog").close()});
   $("hold-form").addEventListener("submit",async e=>{
     if(e.submitter?.value!=="confirm")return;e.preventDefault();
     if(!selectedGift||!db){toast("Firebase hasn't been connected yet.");$("hold-dialog").close();return}
