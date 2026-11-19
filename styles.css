@@ -229,3 +229,25 @@
   z-index:9;
   margin-top:0;
 }
+
+/* Welcome / guest sign-in screen shown after the loading intro. */
+.entry-gate{position:fixed;inset:0;z-index:35;display:grid;place-items:center;padding:24px;background:radial-gradient(ellipse at center,#225b40,var(--pine) 72%);color:#fff;text-align:center;overflow:auto}
+.entry-card{width:min(440px,100%);padding:clamp(28px,6vw,48px) clamp(22px,5vw,38px);border:1px solid #ffffff35;border-radius:14px;background:#0e3025b8;box-shadow:0 24px 80px #0004;backdrop-filter:blur(12px)}
+.entry-snow{color:#f3dfae;letter-spacing:.35em;font-size:1rem}
+.entry-tree{font-size:4rem;line-height:1.25;filter:drop-shadow(0 8px 12px #0004)}
+.entry-card .eyebrow{color:#e8c982;margin:12px 0 5px}
+.entry-card h1{font:700 clamp(2.4rem,8vw,3.3rem)/1.1 "Playfair Display",serif;margin:0}
+.entry-copy{color:#e4eee6;margin:12px 0 25px}
+.entry-actions{display:grid;gap:11px}
+.entry-actions .primary-button,.signin-prompt .primary-button{width:100%;min-height:48px}
+.entry-guest-button{width:100%;min-height:46px;border:1px solid #e8c98280;border-radius:5px;background:#ffffff12;color:#fff;font-weight:700}
+.entry-guest-button:hover{background:#ffffff20}
+.entry-card .form-message{color:#ffd4c9;min-height:1.2em}
+.entry-footnote{font-size:.76rem;line-height:1.5;color:#d2e0d5;margin:15px 0 0}
+.signin-modal{width:min(430px,calc(100% - 28px))}
+.signin-prompt{display:flex;flex-direction:column;gap:13px}
+.signin-prompt h2{max-width:330px}
+.signin-prompt .secondary-button{width:100%}
+.signin-prompt .form-message{min-height:1.2em}
+:root[data-theme="dark"] .entry-gate{background:radial-gradient(ellipse at center,#193f2d,#0b2017 72%)}
+@media(max-width:600px){.entry-card{padding:30px 22px}.entry-tree{font-size:3.5rem}}
