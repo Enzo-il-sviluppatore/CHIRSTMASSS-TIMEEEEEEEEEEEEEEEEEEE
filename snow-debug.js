@@ -27,7 +27,7 @@
       const flake = document.querySelector(".snowflake");
       const bg = flake ? getComputedStyle(flake).backgroundImage : "";
       const match = bg.match(/url\(["']?(.*?)["']?\)/);
-      spriteUrl = match ? match[1] : new URL("assets/snowflake-sprite.png?v=6", document.baseURI).href;
+      spriteUrl = match ? match[1] : new URL("assets/snowflake-1.png?v=1", document.baseURI).href;
       spriteStatus = "Checking…";
       const img = new Image();
       img.onload = () => { spriteStatus = "LOADED (" + img.naturalWidth + "×" + img.naturalHeight + ")"; update(); };
@@ -64,7 +64,7 @@
       const test = document.createElement("div");
       test.id = "snow-debug-test-flake";
       test.setAttribute("aria-hidden", "true");
-      test.style.cssText = 'position:fixed!important;left:50vw!important;top:42vh!important;transform:translate(-50%,-50%)!important;width:120px!important;height:120px!important;display:grid!important;place-items:center!important;z-index:2147483647!important;pointer-events:none!important;border:4px solid #ff00d4!important;background-color:#ff00d4!important;background-image:url("' + new URL("assets/snowflake-sprite.png?v=6", document.baseURI).href + '")!important;background-size:300% 300%!important;background-position:50% 50%!important;background-repeat:no-repeat!important;box-shadow:0 0 0 8px #00ffff,0 0 35px 18px #ff00d4!important;';
+      test.style.cssText = 'position:fixed!important;left:50vw!important;top:42vh!important;transform:translate(-50%,-50%)!important;width:120px!important;height:120px!important;display:grid!important;place-items:center!important;z-index:2147483647!important;pointer-events:none!important;border:4px solid #ff00d4!important;background-color:#ff00d4!important;background-image:url("' + new URL("assets/snowflake-1.png?v=1", document.baseURI).href + '")!important;background-size:300% 300%!important;background-position:50% 50%!important;background-repeat:no-repeat!important;box-shadow:0 0 0 8px #00ffff,0 0 35px 18px #ff00d4!important;';
       test.textContent = "TEST";
       test.style.color = "#fff";
       test.style.font = "bold 16px Arial";
