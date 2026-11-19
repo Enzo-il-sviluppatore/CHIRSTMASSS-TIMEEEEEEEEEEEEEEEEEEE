@@ -22,6 +22,12 @@
     if(!snowLayer)return;
     const pageHeight=Math.max(document.documentElement.scrollHeight,document.body.scrollHeight,window.innerHeight);
     snowLayer.style.setProperty("--snow-page-height",pageHeight+"px");
+    snowLayer.querySelectorAll(".snowflake").forEach(flake=>{
+      const flakeSize=flake.getBoundingClientRect().width||32;
+      const speed=42+(Number(flake.dataset.index||0)%5)*9;
+      flake.style.setProperty("--snow-fall-distance",(pageHeight+flakeSize+20)+"px");
+      flake.style.animationDuration=((pageHeight+flakeSize+20)/speed)+"s";
+    });
   }
   if(snowLayer&&!snowLayer.querySelector(".snowflake")){
     const flakeCount=48;
@@ -31,11 +37,12 @@
       flake.className="snowflake";
       flake.setAttribute("aria-hidden","true");
       flake.style.left=((i*37)%100)+"%";
-      flake.style.top=((i/(flakeCount-1))*100)+"%";
+      flake.style.top="0";
+      flake.dataset.index=String(i);
       flake.style.width=(24+(i%5)*11)+"px";
       flake.style.backgroundImage='url("assets/snowflake-'+sprite+'.png?v=1")';
-      flake.style.animationDuration=(13+(i%8)*2)+"s";
-      flake.style.animationDelay=(-i*1.31)+"s";
+      flake.style.animationDuration="40s";
+      flake.style.animationDelay=(i*0.7)+"s";
       flake.style.setProperty("--drift",(((i*19)%90)-45)+"px");
       snowLayer.appendChild(flake);
     }
