@@ -18,13 +18,20 @@
   setCountdown();setInterval(setCountdown,1000);
   const snowLayer=document.querySelector(".snow-layer");
   // Use individual icy snowflakes with a softer, subtle appearance.
+  function sizeSnowLayer(){
+    if(!snowLayer)return;
+    const pageHeight=Math.max(document.documentElement.scrollHeight,document.body.scrollHeight,window.innerHeight);
+    snowLayer.style.setProperty("--snow-page-height",pageHeight+"px");
+  }
   if(snowLayer&&!snowLayer.querySelector(".snowflake")){
-    for(let i=0;i<32;i++){
+    const flakeCount=48;
+    for(let i=0;i<flakeCount;i++){
       const flake=document.createElement("span");
       const sprite=(i%9)+1;
       flake.className="snowflake";
       flake.setAttribute("aria-hidden","true");
       flake.style.left=((i*37)%100)+"%";
+      flake.style.top=((i/(flakeCount-1))*100)+"%";
       flake.style.width=(24+(i%5)*11)+"px";
       flake.style.backgroundImage='url("assets/snowflake-'+sprite+'.png?v=1")';
       flake.style.animationDuration=(13+(i%8)*2)+"s";
@@ -33,18 +40,19 @@
       snowLayer.appendChild(flake);
     }
   }
-  // Match page scrolling one-for-one: scrolling down moves the snow layer upward by the same distance.
-  let snowScrollTick=false;
-  function syncSnowWithScroll(){
-    if(!snowLayer||snowScrollTick)return;
-    snowScrollTick=true;
-    requestAnimationFrame(()=>{
-      snowLayer.style.setProperty("--snow-scroll",(-window.scrollY)+"px");
-      snowScrollTick=false;
-    });
+  // The snow layer is part of the full document, so it naturally scrolls upward
+  // by exactly the same distance as the page instead of staying in the first viewport.
+  sizeSnowLayer();
+  window.addEventListener("resize",sizeSnowLayer,{passive:true});
+  window.addEventListener("load",sizeSnowLayer,{once:true});
+  if("ResizeObserver" in window){
+    const snowResizeObserver=new ResizeObserver(sizeSnowLayer);
+    snowResizeObserver.observe(document.body);
   }
-  window.addEventListener("scroll",syncSnowWithScroll,{passive:true});
-  syncSnowWithScroll();
+  if("MutationObserver" in window){
+    const snowMutationObserver=new MutationObserver(sizeSnowLayer);
+    snowMutationObserver.observe(document.body,{childList:true,subtree:true});
+  }
   $("snow-toggle").addEventListener("click",()=>{const off=snowLayer.classList.toggle("snow-off");$("snow-toggle").innerHTML=off?"<span>Snow off</span>":"<span>Snow</span>"});
 
   // Dark mode: remember the visitor's choice and keep the button label in sync.
