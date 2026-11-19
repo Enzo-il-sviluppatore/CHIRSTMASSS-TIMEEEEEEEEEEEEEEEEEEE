@@ -17,7 +17,7 @@
   function setCountdown(){const now=new Date(),year=now.getMonth()===11&&now.getDate()>25?now.getFullYear()+1:now.getFullYear(),ms=Math.max(0,new Date(year,11,25)-now),days=Math.floor(ms/86400000),hours=Math.floor(ms%86400000/3600000),minutes=Math.floor(ms%3600000/60000),seconds=Math.floor(ms%60000/1000);$("countdown").textContent=ms===0?"Merry Christmas! 🎄":days+" days · "+hours+"h "+minutes+"m "+seconds+"s until Christmas 🎁"}
   setCountdown();setInterval(setCountdown,1000);
   const snowLayer=document.querySelector(".snow-layer");
-  // Use the generated icy snowflake sprite artwork with the original individual falling animation.
+  // Use individual icy snowflakes with a softer, subtle appearance.
   if(snowLayer&&!snowLayer.querySelector(".snowflake")){
     for(let i=0;i<32;i++){
       const flake=document.createElement("span");
@@ -33,6 +33,18 @@
       snowLayer.appendChild(flake);
     }
   }
+  // Match page scrolling one-for-one: scrolling down moves the snow layer upward by the same distance.
+  let snowScrollTick=false;
+  function syncSnowWithScroll(){
+    if(!snowLayer||snowScrollTick)return;
+    snowScrollTick=true;
+    requestAnimationFrame(()=>{
+      snowLayer.style.setProperty("--snow-scroll",(-window.scrollY)+"px");
+      snowScrollTick=false;
+    });
+  }
+  window.addEventListener("scroll",syncSnowWithScroll,{passive:true});
+  syncSnowWithScroll();
   $("snow-toggle").addEventListener("click",()=>{const off=snowLayer.classList.toggle("snow-off");$("snow-toggle").innerHTML=off?"<span>Snow off</span>":"<span>Snow</span>"});
 
   // Dark mode: remember the visitor's choice and keep the button label in sync.
