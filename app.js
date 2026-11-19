@@ -4,12 +4,19 @@
   const cfg = window.CHRISTMAS_CONFIG || {};
   const greetings = ["Merry Christmas!","Welcome to the holiday magic!","Season's greetings!","It's the most wonderful time of the year!","Happy holidays — come on in!","A little Christmas cheer, just for you!"];
   $("welcome-message").textContent = greetings[Math.floor(Math.random()*greetings.length)];
-  window.addEventListener("load",()=>setTimeout(()=>$("welcome").classList.add("hide"),1050));
   const configured = cfg.firebaseConfig && cfg.firebaseConfig.apiKey && !cfg.firebaseConfig.apiKey.includes("YOUR_") && cfg.firebaseConfig.projectId && !cfg.firebaseConfig.projectId.includes("YOUR_");
   let auth=null, db=null, currentUser=null, gifts=[], statuses={}, purchases={}, selectedGift=null, selectedKind="purchase", toastTimer, draggedGiftId=null;
   if(configured && window.firebase) {
     try { firebase.initializeApp(cfg.firebaseConfig); auth=firebase.auth(); db=firebase.firestore(); } catch(e) { console.error(e); }
   }
+  let pageLoaded=false, authReady=!auth, introResolved=false;
+  function finishIntro(){
+    if(introResolved||!pageLoaded||!authReady)return;
+    introResolved=true;
+    $("welcome").classList.add("hide");
+    $("entry-gate").hidden=!!currentUser;
+  }
+  window.addEventListener("load",()=>{pageLoaded=true;setTimeout(finishIntro,1050)});
   const escapeHTML=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const money=n=>new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format(Number(n)||0);
   function toast(msg){const el=$("toast");el.textContent=msg;el.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),3500)}
@@ -91,6 +98,16 @@
     currentUser=result.user;
     return currentUser;
   }
+  async function signInWithGoogle(){
+    if(!auth)throw new Error("Google sign-in isn't available right now. Please try again later.");
+    const provider=new firebase.auth.GoogleAuthProvider();
+    provider.setCustomParameters({prompt:"select_account"});
+    const result=await auth.signInWithPopup(provider);
+    currentUser=result.user;
+    $("entry-gate").hidden=true;
+    await load();
+    return currentUser;
+  }
   function stampDate(value){return value&&typeof value.toDate==="function"?value.toDate():value?new Date(value):null}
   async function load(){
     if(!db){gifts=[];statuses={};render();$("inspo-content").textContent="Connect Firebase to start adding gift ideas and inspiration.";return}
@@ -140,17 +157,22 @@
     $("gift-details-dialog").classList.remove("gift-reveal");void $("gift-details-dialog").offsetWidth;$("gift-details-dialog").classList.add("gift-reveal");$("gift-details-dialog").showModal();
   }
   $("gift-details-close").addEventListener("click",()=>$("gift-details-dialog").close());
+  function openHoldDialog(){
+    if(!selectedGift)return;
+    $("guest-name").value="";
+    const buying=selectedKind==="bought";
+    $("hold-title").textContent=buying?"Buying this gift?":"Maybe this one?";
+    $("hold-description").textContent=buying?"I use your name so when it comes time to send you a text to thank you, I dont have to remember I can just look. And no, I do not check to see what I'm getting.":"This lets everyone know someone is thinking about this gift. The hold lasts 24 hours.";
+    $("guest-name").required=buying;
+    $("hold-confirm").textContent=buying?"Confirm Bought":"Confirm Maybe";
+    $("hold-dialog").showModal();
+  }
   $("wishlist-grid").addEventListener("click",async e=>{
     const b=e.target.closest("button[data-action]");
     if(b){
       const gift=gifts.find(g=>g.id===b.dataset.id);if(!gift)return;selectedGift=gift;selectedKind=b.dataset.action;
-      $("guest-name").value="";
-      const buying=selectedKind==="bought";
-      $("hold-title").textContent=buying?"Buying this gift?":"Maybe this one?";
-      $("hold-description").textContent=(buying?"I use your name so when it comes time to send you a text to thank you, I dont have to remember I can just look. And no, I do not check to see what I'm getting.":"This lets everyone know someone is thinking about this gift. The hold lasts 24 hours.")+" You'll sign in with Google to continue.";
-      $("guest-name").required=buying;
-      $("hold-confirm").textContent="Continue with Google";
-      $("hold-dialog").showModal();return;
+      if(!currentUser){$("signin-dialog").showModal();return;}
+      openHoldDialog();return;
     }
     const card=e.target.closest("[data-gift-card]");if(card)openGiftDetails(gifts.find(g=>g.id===card.dataset.giftCard));
   });
@@ -158,6 +180,20 @@
     const card=e.target.closest("[data-gift-card]");
     if(card&&(e.key==="Enter"||e.key===" ")){e.preventDefault();openGiftDetails(gifts.find(g=>g.id===card.dataset.giftCard))}
   });
+  $("entry-guest").addEventListener("click",()=>{$("entry-gate").hidden=true});
+  $("entry-google").addEventListener("click",async()=>{
+    const button=$("entry-google");button.disabled=true;$("entry-message").textContent="Opening Google sign-in…";
+    try{await signInWithGoogle();$("entry-message").textContent=""}
+    catch(err){$("entry-message").textContent=err.message||"Couldn't sign in with Google."}
+    finally{button.disabled=false}
+  });
+  $("signin-google").addEventListener("click",async()=>{
+    const button=$("signin-google");button.disabled=true;$("signin-message").textContent="Opening Google sign-in…";
+    try{await signInWithGoogle();$("signin-dialog").close();$("signin-message").textContent="";openHoldDialog()}
+    catch(err){$("signin-message").textContent=err.message||"Couldn't sign in with Google."}
+    finally{button.disabled=false}
+  });
+  $("signin-cancel").addEventListener("click",()=>{$("signin-dialog").close()});
   $("hold-form").addEventListener("submit",async e=>{
     if(e.submitter?.value!=="confirm")return;e.preventDefault();
     if(!selectedGift||!db){toast("Firebase hasn't been connected yet.");$("hold-dialog").close();return}
@@ -234,7 +270,7 @@
     try{if(id)await db.collection("gifts").doc(id).update(payload);else await db.collection("gifts").add({...payload,createdAt:firebase.firestore.FieldValue.serverTimestamp()});toast(id?"Gift updated!":"Gift added!");$("gift-save-message").textContent=id?"Gift updated successfully!":"Gift added successfully!";$("gift-save-message").classList.remove("error");$("gift-save-message").classList.add("success");$("gift-save-message").hidden=false;$("gift-form").reset();$("gift-id").value="";$("gift-form-title").textContent="Add a gift";await load();adminList()}
     catch(err){$("gift-save-message").textContent="Couldn't save gift: "+(err.message||"Please check your connection and Firebase settings.");$("gift-save-message").classList.remove("success");$("gift-save-message").classList.add("error");$("gift-save-message").hidden=false;}
   });
-  if(auth)auth.onAuthStateChanged(async user=>{currentUser=user;await load();if($("admin-dialog").open){if(isAdmin())showAdmin();else{$("admin-login-form").hidden=false;$("admin-panel").hidden=true}}});
+  if(auth)auth.onAuthStateChanged(async user=>{currentUser=user;authReady=true;finishIntro();await load();if($("admin-dialog").open){if(isAdmin())showAdmin();else{$("admin-login-form").hidden=false;$("admin-panel").hidden=true}}});
   if(!auth)load();
 
   // Audio-only playlist. Put properly licensed MP3s in /music using these filenames.
