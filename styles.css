@@ -251,3 +251,7 @@
 .signin-prompt .form-message{min-height:1.2em}
 :root[data-theme="dark"] .entry-gate{background:radial-gradient(ellipse at center,#193f2d,#0b2017 72%)}
 @media(max-width:600px){.entry-card{padding:30px 22px}.entry-tree{font-size:3.5rem}}
+
+/* Second loading screen shown after choosing Google sign-in or Guest. */
+.entry-loading[hidden]{display:none!important}
+.entry-loading{z-index:50}
