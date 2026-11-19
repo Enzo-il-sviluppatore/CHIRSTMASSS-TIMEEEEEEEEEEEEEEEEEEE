@@ -17,6 +17,17 @@
     $("entry-gate").hidden=!!currentUser;
   }
   window.addEventListener("load",()=>{pageLoaded=true;setTimeout(finishIntro,1050)});
+  async function showEntryLoading(){
+    $("entry-loading").hidden=false;
+    $("entry-loading").classList.remove("hide");
+  }
+  async function hideEntryLoading(){
+    await new Promise(resolve=>setTimeout(resolve,850));
+    $("entry-loading").classList.add("hide");
+    await new Promise(resolve=>setTimeout(resolve,700));
+    $("entry-loading").hidden=true;
+    $("entry-loading").classList.remove("hide");
+  }
   const escapeHTML=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const money=n=>new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format(Number(n)||0);
   function toast(msg){const el=$("toast");el.textContent=msg;el.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),3500)}
@@ -105,7 +116,9 @@
     const result=await auth.signInWithPopup(provider);
     currentUser=result.user;
     $("entry-gate").hidden=true;
+    await showEntryLoading();
     await load();
+    await hideEntryLoading();
     return currentUser;
   }
   function stampDate(value){return value&&typeof value.toDate==="function"?value.toDate():value?new Date(value):null}
@@ -163,7 +176,8 @@
     const buying=selectedKind==="bought";
     $("hold-title").textContent=buying?"Buying this gift?":"Maybe this one?";
     $("hold-description").textContent=buying?"I use your name so when it comes time to send you a text to thank you, I dont have to remember I can just look. And no, I do not check to see what I'm getting.":"This lets everyone know someone is thinking about this gift. The hold lasts 24 hours.";
-    $("guest-name").required=buying;
+    $("hold-name-label").textContent=buying?"Your name (required for Bought)":"Your name (required for Maybe)";
+    $("guest-name").required=false;
     $("hold-confirm").textContent=buying?"Confirm Bought":"Confirm Maybe";
     $("hold-dialog").showModal();
   }
@@ -180,7 +194,12 @@
     const card=e.target.closest("[data-gift-card]");
     if(card&&(e.key==="Enter"||e.key===" ")){e.preventDefault();openGiftDetails(gifts.find(g=>g.id===card.dataset.giftCard))}
   });
-  $("entry-guest").addEventListener("click",()=>{$("entry-gate").hidden=true});
+  $("entry-guest").addEventListener("click",async()=>{
+    $("entry-gate").hidden=true;
+    await showEntryLoading();
+    await load();
+    await hideEntryLoading();
+  });
   $("entry-google").addEventListener("click",async()=>{
     const button=$("entry-google");button.disabled=true;$("entry-message").textContent="Opening Google sign-in…";
     try{await signInWithGoogle();$("entry-message").textContent=""}
@@ -203,7 +222,7 @@
       await ensureGoogleSignIn();
       if(!$("guest-name").value.trim()&&currentUser.displayName)$("guest-name").value=currentUser.displayName;
       const finalGuestName=$("guest-name").value.trim();
-      if(selectedKind==="bought"&&!finalGuestName)throw new Error("Please enter your name.");
+      if(!finalGuestName)throw new Error(selectedKind==="bought"?"Please enter your name to mark this as Bought.":"Please enter your name to mark this as Maybe.");
       const ref=db.collection("giftHolds").doc(selectedGift.id);
       await db.runTransaction(async tx=>{
         const snap=await tx.get(ref),existing=snap.exists?snap.data():null;
