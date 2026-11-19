@@ -44,7 +44,12 @@
       const flakeSize=flake.getBoundingClientRect().width||32;
       const speed=42+(Number(flake.dataset.index||0)%5)*9;
       flake.style.setProperty("--snow-fall-distance",(pageHeight+flakeSize+20)+"px");
-      flake.style.animationDuration=((pageHeight+flakeSize+20)/speed)+"s";
+      // Set the animation duration only once. Reassigning it during an active
+      // CSS animation restarts its timeline and makes flakes visibly jump.
+      if(!flake.dataset.durationInitialized){
+        flake.style.animationDuration=((pageHeight+flakeSize+20)/speed)+"s";
+        flake.dataset.durationInitialized="true";
+      }
     });
   }
   if(snowLayer&&!snowLayer.querySelector(".snowflake")){
