@@ -21,16 +21,15 @@
   if(snowLayer&&!snowLayer.querySelector(".snowflake")){
     for(let i=0;i<32;i++){
       const flake=document.createElement("span");
-      const sprite=i%9;
-      const col=sprite%3, row=Math.floor(sprite/3);
+      const sprite=(i%9)+1;
       flake.className="snowflake";
       flake.setAttribute("aria-hidden","true");
       flake.style.left=((i*37)%100)+"%";
       flake.style.width=(24+(i%5)*11)+"px";
+      flake.style.backgroundImage='url("assets/snowflake-'+sprite+'.png?v=1")';
       flake.style.animationDuration=(13+(i%8)*2)+"s";
       flake.style.animationDelay=(-i*1.31)+"s";
       flake.style.setProperty("--drift",(((i*19)%90)-45)+"px");
-      flake.style.backgroundPosition=(col*50)+"% "+(row*50)+"%";
       snowLayer.appendChild(flake);
     }
   }
