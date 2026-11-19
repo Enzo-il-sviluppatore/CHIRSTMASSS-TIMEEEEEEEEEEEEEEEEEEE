@@ -170,6 +170,7 @@
     $("gift-details-dialog").classList.remove("gift-reveal");void $("gift-details-dialog").offsetWidth;$("gift-details-dialog").classList.add("gift-reveal");$("gift-details-dialog").showModal();
   }
   $("gift-details-close").addEventListener("click",()=>$("gift-details-dialog").close());
+  $("gift-details-dialog").addEventListener("click",e=>{if(e.target===$("gift-details-dialog"))$("gift-details-dialog").close()});
   function openHoldDialog(){
     if(!selectedGift)return;
     $("guest-name").value="";
