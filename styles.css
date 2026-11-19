@@ -215,3 +215,8 @@
   color:#e6eee8;
 }
 :root[data-theme="dark"] .admin-modal .modal-close{color:#c4d1c8}
+
+
+/* Each flake enters at the top edge and travels the full document height. */
+.snowflake{top:0!important;animation-fill-mode:both}
+@keyframes snowflake-fall{from{transform:translate3d(0,-70px,0) rotate(0deg)}to{transform:translate3d(var(--drift),var(--snow-fall-distance,100vh),0) rotate(360deg)}}
