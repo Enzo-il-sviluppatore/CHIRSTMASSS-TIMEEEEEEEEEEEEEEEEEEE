@@ -248,6 +248,17 @@
   ];
   const audio=$("christmas-audio");
   let trackIndex=0,panelOpen=false,autoplayAttempted=false,shuffleEnabled=false,repeatEnabled=false;
+  // Keep the open music panel attached directly beneath the sticky topbar,
+  // including when the topbar wraps onto multiple rows on smaller screens.
+  const siteHeader=document.querySelector(".site-header");
+  function syncMusicPanelOffset(){
+    if(siteHeader)document.documentElement.style.setProperty("--music-panel-sticky-top",siteHeader.getBoundingClientRect().height+"px");
+  }
+  syncMusicPanelOffset();
+  if("ResizeObserver" in window&&siteHeader){
+    const headerResizeObserver=new ResizeObserver(syncMusicPanelOffset);
+    headerResizeObserver.observe(siteHeader);
+  }else window.addEventListener("resize",syncMusicPanelOffset,{passive:true});
   audio.volume=.55;
   function showTrackTitle(title){
     $("now-playing-title").textContent=title;
