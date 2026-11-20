@@ -255,3 +255,41 @@
 /* Second loading screen shown after choosing Google sign-in or Guest. */
 .entry-loading[hidden]{display:none!important}
 .entry-loading{z-index:50}
+
+
+/* Automatic Christmas Eve and Christmas Day atmosphere. */
+.seasonal-banner{
+  display:table;
+  margin:0 auto 18px;
+  padding:8px 17px;
+  border:1px solid #e8c98299;
+  border-radius:30px;
+  background:#0b2e21a8;
+  color:#f5dfaa;
+  font-size:.82rem;
+  font-weight:700;
+  letter-spacing:.03em;
+  box-shadow:0 0 24px #e8c98225;
+  animation:seasonal-glow 3s ease-in-out infinite alternate;
+}
+.seasonal-banner[hidden]{display:none}
+@keyframes seasonal-glow{from{box-shadow:0 0 12px #e8c98218}to{box-shadow:0 0 28px #e8c98255}}
+:root.christmas-eve-mode .hero{
+  background:radial-gradient(ellipse at 50% 0%,#315f48,#123b2b 72%);
+}
+:root.christmas-day-mode .hero{
+  background:radial-gradient(ellipse at 50% 0%,#386b4b,#123b2b 72%);
+}
+:root.christmas-eve-mode .closing,
+:root.christmas-day-mode .closing{
+  background:linear-gradient(135deg,#0d3022,#1b563b 52%,#0d3022);
+}
+:root.christmas-eve-mode .closing>div,
+:root.christmas-day-mode .closing>div{
+  filter:drop-shadow(0 0 12px #e8c98280);
+}
+:root[data-theme="dark"].christmas-eve-mode .hero,
+:root[data-theme="dark"].christmas-day-mode .hero{
+  background:radial-gradient(ellipse at 50% 0%,#244c37,#0b2017 72%);
+}
+@media(prefers-reduced-motion:reduce){.seasonal-banner{animation:none}}
