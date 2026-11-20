@@ -32,6 +32,34 @@
   const money=n=>new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format(Number(n)||0);
   function toast(msg){const el=$("toast");el.textContent=msg;el.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),3500)}
   function isAdmin(){return !!(currentUser && currentUser.email && currentUser.email.toLowerCase()===String(cfg.adminEmail||"").toLowerCase() && currentUser.emailVerified && currentUser.providerData.some(p=>p.providerId==="google.com"))}
+  // Special seasonal presentation runs on the visitor's local calendar date.
+  // It changes only greetings and decoration, never wishlist data or actions.
+  function updateSeasonalMode(){
+    const now=new Date(), month=now.getMonth(), day=now.getDate();
+    const eve=month===11&&day===24, christmas=month===11&&day===25;
+    const root=document.documentElement;
+    root.classList.toggle("christmas-eve-mode",eve);
+    root.classList.toggle("christmas-day-mode",christmas);
+    const banner=$("seasonal-banner"), eyebrow=$("hero-eyebrow"), closing=$("closing-greeting"), copy=$("closing-copy");
+    if(eve){
+      banner.hidden=false; banner.textContent="✨ Christmas Eve · The magic is almost here ✨";
+      eyebrow.textContent="The night before the most wonderful day";
+      closing.innerHTML="The magic is almost here<br><em>Tomorrow is Christmas!</em>";
+      copy.textContent="Wishing you a wonderful Christmas Eve.";
+    }else if(christmas){
+      banner.hidden=false; banner.textContent="🎄 It's Christmas Day · Merry Christmas! 🎄";
+      eyebrow.textContent="The most wonderful day of the year";
+      closing.innerHTML="Wishing you a<br><em>very Merry Christmas!</em>";
+      copy.textContent="Thanks for being part of the magic. Have a wonderful Christmas!";
+    }else{
+      banner.hidden=true;
+      eyebrow.textContent="The most wonderful time of the year";
+      closing.innerHTML="Wishing you a<br><em>very Merry Christmas</em>";
+      copy.textContent="Thanks for being part of the magic.";
+    }
+  }
+  updateSeasonalMode();
+  setInterval(updateSeasonalMode,60000);
   function setCountdown(){const now=new Date(),year=now.getMonth()===11&&now.getDate()>25?now.getFullYear()+1:now.getFullYear(),ms=Math.max(0,new Date(year,11,25)-now),days=Math.floor(ms/86400000),hours=Math.floor(ms%86400000/3600000),minutes=Math.floor(ms%3600000/60000),seconds=Math.floor(ms%60000/1000);$("countdown").textContent=ms===0?"Merry Christmas! 🎄":days+" days · "+hours+"h "+minutes+"m "+seconds+"s until Christmas 🎁"}
   setCountdown();setInterval(setCountdown,1000);
   const snowLayer=document.querySelector(".snow-layer");
