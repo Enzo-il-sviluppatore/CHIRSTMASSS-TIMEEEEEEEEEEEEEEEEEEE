@@ -10,12 +10,12 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
-  <link rel="stylesheet" href="styles.css?v=entry-loading-13">
+  <link rel="stylesheet" href="styles.css?v=christmas-special-14">
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
   <script src="config.js"></script>
-  <script defer src="app.js?v=snow-content-height-13"></script>
+  <script defer src="app.js?v=christmas-special-14"></script>
 </head>
 <body>
   <div id="welcome" class="welcome-screen" aria-live="polite">
@@ -69,8 +69,9 @@
 <audio id="christmas-audio" preload="auto"></audio><div id="mini-player" class="mini-player" hidden><strong id="mini-player-title">Christmas music</strong><span id="mini-player-time">0:00/0:00</span><button id="mini-player-play" type="button">▶</button><button id="mini-player-next" type="button">⏭</button><button id="mini-player-open" type="button">Open player</button></div>
   <main>
     <section class="hero">
+      <p id="seasonal-banner" class="seasonal-banner" hidden aria-live="polite"></p>
       <div class="hero-lights" aria-hidden="true">✦　●　✦　●　✦　●　✦　●　✦</div>
-      <p class="eyebrow">The most wonderful time of the year</p>
+      <p id="hero-eyebrow" class="eyebrow">The most wonderful time of the year</p>
       <h1>Vincenzo's<br><em>Christmas & BirthdayList</em></h1>
       <p class="hero-copy">A few things I'd love this Christmas. Thanks for stopping by. happy holidays! ✨</p>
       <a class="primary-button" href="#wishlist">Explore my wishlist <span>↓</span></a>
@@ -99,7 +100,7 @@
     </section>
 
     <section class="closing">
-      <div>🕯️</div><h2>Wishing you a<br><em>very Merry Christmas</em></h2><p>Thanks for being part of the magic.</p><span>— Vincenzo</span>
+      <div>🕯️</div><h2 id="closing-greeting">Wishing you a<br><em>very Merry Christmas</em></h2><p id="closing-copy">Thanks for being part of the magic.</p><span>— Vincenzo</span>
     </section>
   </main>
 
