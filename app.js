@@ -38,7 +38,14 @@
   // Use individual icy snowflakes with a softer, subtle appearance.
   function sizeSnowLayer(){
     if(!snowLayer)return;
-    const pageHeight=Math.max(document.documentElement.scrollHeight,document.body.scrollHeight,window.innerHeight);
+    // Measure through the actual footer, not document.scrollHeight: the
+    // absolutely positioned snow layer can otherwise count its own height
+    // and leave an empty scrollable area after the page content.
+    const footer=document.querySelector("body > footer");
+    const contentBottom=footer
+      ? footer.getBoundingClientRect().bottom+window.scrollY
+      : document.querySelector("main")?.getBoundingClientRect().bottom+window.scrollY||window.innerHeight;
+    const pageHeight=Math.max(window.innerHeight,Math.ceil(contentBottom));
     snowLayer.style.setProperty("--snow-page-height",pageHeight+"px");
     snowLayer.querySelectorAll(".snowflake").forEach(flake=>{
       const flakeSize=flake.getBoundingClientRect().width||32;
