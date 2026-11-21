@@ -312,7 +312,7 @@
     }catch(err){$("admin-message").textContent=err.message}
     finally{button.disabled=false}
   });
-  $("admin-signout").addEventListener("click",async()=>{await auth.signOut();currentUser=null;$("admin-panel").hidden=true;$("admin-login-form").hidden=false;toast("Signed out.");await load()});
+  $("admin-panel-close").addEventListener("click",async()=>{$("admin-dialog").close()});
   function adminList(){const counts=[["Total gifts",gifts.length],["Available",gifts.filter(g=>getStatus(g).status==="available").length],["On hold",gifts.filter(g=>getStatus(g).status==="held").length],["Bought",gifts.filter(g=>getStatus(g).status==="bought").length]];$("admin-stats").innerHTML=counts.map(x=>'<div class="admin-stat"><strong>'+x[1]+'</strong><span>'+x[0]+'</span></div>').join("");$("admin-gift-list").innerHTML=[...gifts].sort((x,y)=>(Number(x.order)||0)-(Number(y.order)||0)).map(g=>{const bought=getStatus(g).status==="bought",buyer=purchases[g.id]?.guestName;return '<div class="admin-gift-row" draggable="true" data-sort-gift="'+g.id+'"><div><strong>'+escapeHTML(g.name)+'</strong><small>'+escapeHTML(g.category||"Other")+' · '+money(g.price)+' · '+escapeHTML(g.supplier||"No store")+(bought&&buyer?' · Bought by '+escapeHTML(buyer):'')+'</small></div><div><button data-edit="'+g.id+'">Edit</button><button data-bought="'+g.id+'">'+(bought?"Mark not bought":"Mark bought")+'</button><button data-delete="'+g.id+'">Delete</button></div></div>'}).join("")||"<p>No gifts yet.</p>"}
   $("admin-gift-list").addEventListener("dragstart",e=>{const row=e.target.closest("[data-sort-gift]");if(!row)return;draggedGiftId=row.dataset.sortGift;e.dataTransfer.setData("text/plain",draggedGiftId);e.dataTransfer.effectAllowed="move";row.classList.add("dragging")});
   $("admin-gift-list").addEventListener("dragover",e=>{const row=e.target.closest("[data-sort-gift]");if(!row||!draggedGiftId)return;e.preventDefault();const moving=$("admin-gift-list").querySelector(".dragging");if(!moving)return;const r=row.getBoundingClientRect();row.parentNode.insertBefore(moving,e.clientY<r.top+r.height/2?row:row.nextSibling)});
@@ -356,7 +356,19 @@
     const headerResizeObserver=new ResizeObserver(syncMusicPanelOffset);
     headerResizeObserver.observe(siteHeader);
   }else window.addEventListener("resize",syncMusicPanelOffset,{passive:true});
-  audio.volume=.55;
+  const DEFAULT_VOLUME=.22;
+  let fadeToken=0;
+  audio.volume=DEFAULT_VOLUME;
+  $("audio-volume").value=String(DEFAULT_VOLUME);
+  function fadeVolume(target,duration=650){
+    const token=++fadeToken,start=audio.volume,began=performance.now();
+    return new Promise(resolve=>{
+      const step=now=>{if(token!==fadeToken){resolve();return}const progress=Math.min(1,(now-began)/duration);audio.volume=Math.max(0,Math.min(1,start+(target-start)*progress));if(progress<1)requestAnimationFrame(step);else resolve()};
+      requestAnimationFrame(step);
+    });
+  }
+  async function startAudio(){fadeToken++;audio.volume=0;try{await audio.play();await fadeVolume(DEFAULT_VOLUME,900)}catch(e){audio.volume=DEFAULT_VOLUME;throw e}}
+  async function pauseAudio(){if(audio.paused)return;await fadeVolume(0,550);audio.pause();audio.volume=DEFAULT_VOLUME}
   function showTrackTitle(title){
     $("now-playing-title").textContent=title;
     $("audio-current-title").textContent=title;$("mini-player-title").textContent=title;
@@ -396,26 +408,27 @@
   audio.addEventListener("loadedmetadata",updateAudioTime);
   audio.addEventListener("durationchange",updateAudioTime);
   audio.addEventListener("seeked",updateAudioTime);
-  function playTrack(i,tryPlay=true){
+  async function playTrack(i,tryPlay=true){
+    if(!audio.paused)await pauseAudio();
     trackIndex=(i+tracks.length)%tracks.length;
     const track=tracks[trackIndex];
     showTrackTitle(track.title);updateTrackButtons();$("mini-player").hidden=panelOpen;
     audio.pause();audio.src=track.file;audio.load();
     if(tryPlay){
-      audio.play().then(()=>{$("music-note").textContent="Now playing.";setPlayerState(true)})
+      startAudio().then(()=>{$("music-note").textContent="Now playing.";setPlayerState(true)})
       .catch(()=>{$("music-note").textContent="Your browser blocked automatic sound, or the MP3 is not uploaded yet. Press Play after adding the licensed audio files.";setPlayerState(false)});
     } else setPlayerState(false);
   }
-  audio.addEventListener("ended",()=>{if(repeatEnabled){audio.currentTime=0;audio.play().catch(()=>{})}else playTrack(shuffleEnabled?Math.floor(Math.random()*tracks.length):trackIndex+1,true)});
+  audio.addEventListener("ended",()=>{if(repeatEnabled){audio.currentTime=0;startAudio().catch(()=>{})}else playTrack(shuffleEnabled?Math.floor(Math.random()*tracks.length):trackIndex+1,true)});
   audio.addEventListener("play",()=>{setPlayerState(true);$("mini-player").hidden=panelOpen;$("mini-player-play").textContent="Ⅱ"});
   audio.addEventListener("pause",()=>{setPlayerState(false);$("mini-player-play").textContent="▶"});
   audio.addEventListener("error",()=>{$("music-note").textContent="This MP3 has not been uploaded yet. See music/README.md for the filenames.";setPlayerState(false)});
-  $("audio-play").addEventListener("click",()=>audio.play().catch(()=>toast("That MP3 file isn't available yet.")));
-  $("audio-pause").addEventListener("click",()=>audio.pause());
+  $("audio-play").addEventListener("click",()=>startAudio().catch(()=>toast("Audio unavailable.")));
+  $("audio-pause").addEventListener("click",pauseAudio);
   $("audio-volume").addEventListener("input",e=>audio.volume=Number(e.target.value));
   $("audio-shuffle").addEventListener("click",()=>{shuffleEnabled=!shuffleEnabled;$("audio-shuffle").textContent="🔀 Shuffle: "+(shuffleEnabled?"On":"Off");$("audio-shuffle").setAttribute("aria-pressed",String(shuffleEnabled))});
   $("audio-repeat").addEventListener("click",()=>{repeatEnabled=!repeatEnabled;$("audio-repeat").textContent="🔁 Repeat: "+(repeatEnabled?"On":"Off");$("audio-repeat").setAttribute("aria-pressed",String(repeatEnabled))});
-  $("mini-player-play").addEventListener("click",()=>audio.paused?audio.play().catch(()=>{}):audio.pause());$("mini-player-next").addEventListener("click",skipTrack);$("mini-player-open").addEventListener("click",()=>{panelOpen=true;$("music-panel").hidden=false;$("mini-player").hidden=true});
+  $("mini-player-play").addEventListener("click",()=>audio.paused?startAudio().catch(()=>{}):audio.pause());$("mini-player-next").addEventListener("click",skipTrack);$("mini-player-open").addEventListener("click",()=>{panelOpen=true;$("music-panel").hidden=false;$("mini-player").hidden=true});
   function toggleMusicPanel(){panelOpen=!panelOpen;$("music-panel").hidden=!panelOpen;$("mini-player").hidden=panelOpen||!audio.src}
   $("music-toggle").addEventListener("click",toggleMusicPanel);
   $("now-playing").addEventListener("click",toggleMusicPanel);
@@ -430,7 +443,7 @@
   });
   // If audible autoplay is blocked, retry after the first real visitor gesture.
   const retryAutoplay=()=>{
-    if(audio.paused&&audio.src)audio.play().catch(()=>{});
+    if(audio.paused&&audio.src)startAudio().catch(()=>{});
     document.removeEventListener("pointerdown",retryAutoplay);
     document.removeEventListener("keydown",retryAutoplay);
   };
