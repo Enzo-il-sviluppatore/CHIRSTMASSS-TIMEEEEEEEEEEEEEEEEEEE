@@ -293,3 +293,7 @@
   background:radial-gradient(ellipse at 50% 0%,#244c37,#0b2017 72%);
 }
 @media(prefers-reduced-motion:reduce){.seasonal-banner{animation:none}}
+
+
+/* Account identity shown in the Bought / Maybe confirmation dialog. */
+.signed-in-email{margin:-5px 0 2px;padding:9px 11px;border:1px solid var(--line);border-radius:6px;background:var(--surface-soft);color:var(--muted);font-size:.82rem;overflow-wrap:anywhere}
