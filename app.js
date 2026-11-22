@@ -217,7 +217,8 @@
     const buying=selectedKind==="bought";
     $("hold-title").textContent=buying?"Buying this gift?":"Maybe this one?";
     $("hold-description").textContent=buying?"I use your name so when it comes time to send you a text to thank you, I dont have to remember I can just look. And no, I do not check to see what I'm getting.":"This lets everyone know someone is thinking about this gift. The hold lasts 24 hours.";
-    $("hold-name-label").textContent=buying?"Your name (required for Bought)":"Your name (required for Maybe)";
+    $("hold-name-label").textContent="Your name (optional)";
+    $("signed-in-email").textContent="Signed in with "+(currentUser?.email||"your Google account");
     $("guest-name").required=false;
     $("hold-confirm").textContent=buying?"Confirm Bought":"Confirm Maybe";
     $("hold-dialog").showModal();
@@ -261,9 +262,8 @@
         $("hold-confirm").disabled=true;
     try{
       await ensureGoogleSignIn();
-      if(!$("guest-name").value.trim()&&currentUser.displayName)$("guest-name").value=currentUser.displayName;
-      const finalGuestName=$("guest-name").value.trim();
-      if(!finalGuestName)throw new Error(selectedKind==="bought"?"Please enter your name to mark this as Bought.":"Please enter your name to mark this as Maybe.");
+      const enteredName=$("guest-name").value.trim();
+      const finalGuestName=enteredName||currentUser.email||currentUser.displayName||"Google user";
       const ref=db.collection("giftHolds").doc(selectedGift.id);
       await db.runTransaction(async tx=>{
         const snap=await tx.get(ref),existing=snap.exists?snap.data():null;
