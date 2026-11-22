@@ -10,12 +10,12 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
-  <link rel="stylesheet" href="styles.css?v=admin-audio-polish-15">
+  <link rel="stylesheet" href="styles.css?v=optional-name-account-email-16">
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
   <script src="config.js"></script>
-  <script defer src="app.js?v=admin-audio-polish-15"></script>
+  <script defer src="app.js?v=optional-name-account-email-16"></script>
 </head>
 <body>
   <div id="welcome" class="welcome-screen" aria-live="polite">
@@ -109,7 +109,7 @@
   <dialog id="gift-details-dialog" class="modal gift-details-modal"><button id="gift-details-close" class="modal-close" type="button" aria-label="Close">×</button><div id="gift-details-content"></div></dialog>
 
   <dialog id="hold-dialog" class="modal">
-    <form id="hold-form" method="dialog"><button class="modal-close" value="cancel" aria-label="Close">×</button><p class="eyebrow">A little gift planning</p><h2 id="hold-title">Hold this gift?</h2><p id="hold-description" class="muted"></p><label id="hold-name-label" for="guest-name">Your name (required for Bought)</label><input id="guest-name" maxlength="50" placeholder="Your name" autocomplete="name"><div class="modal-actions"><button class="secondary-button" value="cancel">Cancel</button><button id="hold-confirm" class="primary-button" value="confirm">Confirm hold</button></div></form>
+    <form id="hold-form" method="dialog"><button class="modal-close" value="cancel" aria-label="Close">×</button><p class="eyebrow">A little gift planning</p><h2 id="hold-title">Hold this gift?</h2><p id="hold-description" class="muted"></p><p id="signed-in-email" class="signed-in-email">Signed in with your Google account</p><label id="hold-name-label" for="guest-name">Your name (optional)</label><input id="guest-name" maxlength="50" placeholder="Your name (optional)" autocomplete="name"><div class="modal-actions"><button class="secondary-button" value="cancel">Cancel</button><button id="hold-confirm" class="primary-button" value="confirm">Confirm hold</button></div></form>
   </dialog>
 
   <dialog id="signin-dialog" class="modal signin-modal">
