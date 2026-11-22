@@ -9,7 +9,7 @@
   if(configured && window.firebase) {
     try { firebase.initializeApp(cfg.firebaseConfig); auth=firebase.auth(); db=firebase.firestore(); } catch(e) { console.error(e); }
   }
-  let pageLoaded=false, authReady=!auth, introResolved=false;
+  let contacts={}, pageLoaded=false, authReady=!auth, introResolved=false;
   function finishIntro(){
     if(introResolved||!pageLoaded||!authReady)return;
     introResolved=true;
@@ -165,10 +165,11 @@
   async function load(){
     if(!db){gifts=[];statuses={};render();$("inspo-content").textContent="Connect Firebase to start adding gift ideas and inspiration.";return}
     try{
-      const [giftSnap,holdSnap,purchaseSnap]=await Promise.all([db.collection("gifts").orderBy("createdAt","desc").get(),db.collection("giftHolds").get(),isAdmin()?db.collection("giftPurchases").get():Promise.resolve({docs:[]})]);
+      const [giftSnap,holdSnap,purchaseSnap,contactSnap]=await Promise.all([db.collection("gifts").orderBy("createdAt","desc").get(),db.collection("giftHolds").get(),isAdmin()?db.collection("giftPurchases").get():Promise.resolve({docs:[]}),isAdmin()?db.collection("giftContacts").get():Promise.resolve({docs:[]})]);
       gifts=giftSnap.docs.map(d=>({id:d.id,...d.data()}));
       statuses=Object.fromEntries(holdSnap.docs.map(d=>[d.id,d.data()]));
       purchases=Object.fromEntries(purchaseSnap.docs.map(d=>[d.id,d.data()]));
+      contacts=Object.fromEntries(contactSnap.docs.map(d=>[d.id,d.data()]));
       render();
       const inspiration=gifts.map(g=>g.inspiration).filter(Boolean);
       $("inspo-content").textContent=inspiration.length?inspiration.join("\n\n"):"I'll add some ideas here soon!";
@@ -217,7 +218,7 @@
     const buying=selectedKind==="bought";
     $("hold-title").textContent=buying?"Buying this gift?":"Maybe this one?";
     $("hold-description").textContent=buying?"I use your name so when it comes time to send you a text to thank you, I dont have to remember I can just look. And no, I do not check to see what I'm getting.":"This lets everyone know someone is thinking about this gift. The hold lasts 24 hours.";
-    $("hold-name-label").textContent=buying?"Your name (required for Bought)":"Your name (required for Maybe)";
+    $("hold-name-label").textContent="Your name (optional)";
     $("guest-name").required=false;
     $("hold-confirm").textContent=buying?"Confirm Bought":"Confirm Maybe";
     $("hold-dialog").showModal();
@@ -261,9 +262,9 @@
         $("hold-confirm").disabled=true;
     try{
       await ensureGoogleSignIn();
-      if(!$("guest-name").value.trim()&&currentUser.displayName)$("guest-name").value=currentUser.displayName;
-      const finalGuestName=$("guest-name").value.trim();
-      if(!finalGuestName)throw new Error(selectedKind==="bought"?"Please enter your name to mark this as Bought.":"Please enter your name to mark this as Maybe.");
+      const enteredName=$("guest-name").value.trim();
+      const accountEmail=currentUser.email||"";
+      const finalGuestName=enteredName||accountEmail||currentUser.displayName||"Google user";
       const ref=db.collection("giftHolds").doc(selectedGift.id);
       await db.runTransaction(async tx=>{
         const snap=await tx.get(ref),existing=snap.exists?snap.data():null;
@@ -272,9 +273,10 @@
         if(existing&&existing.status==="held"&&expiry&&expiry>new Date())throw new Error("Someone already has this gift on hold.");
         if(selectedKind==="bought"){
           tx.set(ref,{status:"bought",holdKind:"purchase",ownerUid:currentUser.uid,expiresAt:null,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
-          tx.set(db.collection("giftPurchases").doc(selectedGift.id),{ownerUid:currentUser.uid,guestName:finalGuestName,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+          tx.set(db.collection("giftPurchases").doc(selectedGift.id),{ownerUid:currentUser.uid,guestName:finalGuestName,email:accountEmail,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
         }else{
-          tx.set(ref,{status:"held",holdKind:selectedKind,ownerUid:currentUser.uid,guestName:finalGuestName||"",expiresAt:firebase.firestore.Timestamp.fromDate(new Date(Date.now()+24*60*60*1000)),updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+          tx.set(ref,{status:"held",holdKind:selectedKind,ownerUid:currentUser.uid,expiresAt:firebase.firestore.Timestamp.fromDate(new Date(Date.now()+24*60*60*1000)),updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+          tx.set(db.collection("giftContacts").doc(selectedGift.id),{ownerUid:currentUser.uid,contactName:finalGuestName,email:accountEmail,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
         }
       });
       $("hold-dialog").close();toast(selectedKind==="bought"?"Marked as bought. Thank you!":"Gift held for 24 hours. Thanks!");await load();
@@ -313,7 +315,7 @@
     finally{button.disabled=false}
   });
   $("admin-panel-close").addEventListener("click",async()=>{$("admin-dialog").close()});
-  function adminList(){const counts=[["Total gifts",gifts.length],["Available",gifts.filter(g=>getStatus(g).status==="available").length],["On hold",gifts.filter(g=>getStatus(g).status==="held").length],["Bought",gifts.filter(g=>getStatus(g).status==="bought").length]];$("admin-stats").innerHTML=counts.map(x=>'<div class="admin-stat"><strong>'+x[1]+'</strong><span>'+x[0]+'</span></div>').join("");$("admin-gift-list").innerHTML=[...gifts].sort((x,y)=>(Number(x.order)||0)-(Number(y.order)||0)).map(g=>{const bought=getStatus(g).status==="bought",buyer=purchases[g.id]?.guestName;return '<div class="admin-gift-row" draggable="true" data-sort-gift="'+g.id+'"><div><strong>'+escapeHTML(g.name)+'</strong><small>'+escapeHTML(g.category||"Other")+' · '+money(g.price)+' · '+escapeHTML(g.supplier||"No store")+(bought&&buyer?' · Bought by '+escapeHTML(buyer):'')+'</small></div><div><button data-edit="'+g.id+'">Edit</button><button data-bought="'+g.id+'">'+(bought?"Mark not bought":"Mark bought")+'</button><button data-delete="'+g.id+'">Delete</button></div></div>'}).join("")||"<p>No gifts yet.</p>"}
+  function adminList(){const counts=[["Total gifts",gifts.length],["Available",gifts.filter(g=>getStatus(g).status==="available").length],["On hold",gifts.filter(g=>getStatus(g).status==="held").length],["Bought",gifts.filter(g=>getStatus(g).status==="bought").length]];$("admin-stats").innerHTML=counts.map(x=>'<div class="admin-stat"><strong>'+x[1]+'</strong><span>'+x[0]+'</span></div>').join("");$("admin-gift-list").innerHTML=[...gifts].sort((x,y)=>(Number(x.order)||0)-(Number(y.order)||0)).map(g=>{const status=getStatus(g).status,bought=status==="bought",buyer=bought?purchases[g.id]?.guestName:status==="held"?contacts[g.id]?.contactName:null;return '<div class="admin-gift-row" draggable="true" data-sort-gift="'+g.id+'"><div><strong>'+escapeHTML(g.name)+'</strong><small>'+escapeHTML(g.category||"Other")+' · '+money(g.price)+' · '+escapeHTML(g.supplier||"No store")+(bought&&buyer?' · Bought by '+escapeHTML(buyer):status==='held'&&buyer?' · Maybe by '+escapeHTML(buyer):'')+'</small></div><div><button data-edit="'+g.id+'">Edit</button><button data-bought="'+g.id+'">'+(bought?"Mark not bought":"Mark bought")+'</button><button data-delete="'+g.id+'">Delete</button></div></div>'}).join("")||"<p>No gifts yet.</p>"}
   $("admin-gift-list").addEventListener("dragstart",e=>{const row=e.target.closest("[data-sort-gift]");if(!row)return;draggedGiftId=row.dataset.sortGift;e.dataTransfer.setData("text/plain",draggedGiftId);e.dataTransfer.effectAllowed="move";row.classList.add("dragging")});
   $("admin-gift-list").addEventListener("dragover",e=>{const row=e.target.closest("[data-sort-gift]");if(!row||!draggedGiftId)return;e.preventDefault();const moving=$("admin-gift-list").querySelector(".dragging");if(!moving)return;const r=row.getBoundingClientRect();row.parentNode.insertBefore(moving,e.clientY<r.top+r.height/2?row:row.nextSibling)});
   $("admin-gift-list").addEventListener("dragend",async()=>{if(!draggedGiftId)return;const rows=[...$("admin-gift-list").querySelectorAll("[data-sort-gift]")];try{await Promise.all(rows.map((row,i)=>db.collection("gifts").doc(row.dataset.sortGift).update({order:i})));gifts.sort((x,y)=>rows.findIndex(r=>r.dataset.sortGift===x.id)-rows.findIndex(r=>r.dataset.sortGift===y.id));toast("Gift order saved.");render()}catch(err){toast("Could not save order: "+err.message);adminList()}draggedGiftId=null});
