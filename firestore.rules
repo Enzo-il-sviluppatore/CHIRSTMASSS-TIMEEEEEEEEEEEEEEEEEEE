@@ -50,25 +50,13 @@ service cloud.firestore {
         );
       allow delete: if isAdmin();
     }
-    match /giftContacts/{giftId} {
-      allow read: if isAdmin();
-      allow create, update: if signedIn()
-        && request.resource.data.ownerUid == request.auth.uid
-        && request.resource.data.contactName is string
-        && request.resource.data.contactName.size() > 0
-        && request.resource.data.email is string
-        && getAfter(/databases/$(database)/documents/giftHolds/$(giftId)).data.status == "held"
-        && getAfter(/databases/$(database)/documents/giftHolds/$(giftId)).data.ownerUid == request.auth.uid;
-      allow delete: if isAdmin();
-    }
     match /giftPurchases/{giftId} {
       allow read: if isAdmin();
       allow create: if signedIn()
         && request.resource.data.ownerUid == request.auth.uid
         && request.resource.data.guestName is string
         && request.resource.data.guestName.size() > 0
-        && request.resource.data.guestName.size() <= 320
-        && request.resource.data.email is string
+        && request.resource.data.guestName.size() <= 50
         && getAfter(/databases/$(database)/documents/giftHolds/$(giftId)).data.status == "bought"
         && getAfter(/databases/$(database)/documents/giftHolds/$(giftId)).data.ownerUid == request.auth.uid;
       allow update, delete: if isAdmin();
