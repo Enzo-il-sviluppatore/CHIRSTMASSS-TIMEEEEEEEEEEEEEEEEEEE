@@ -300,7 +300,7 @@
 
 /* Guided website tour */
 .tour-panel[hidden]{display:none!important}
-.tour-panel{position:fixed;z-index:100;right:22px;bottom:22px;width:min(420px,calc(100% - 28px));padding:20px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--text);box-shadow:0 18px 60px #0005}
+.tour-panel{position:fixed;z-index:100;right:22px;bottom:22px;width:min(420px,calc(100% - 28px));padding:20px;border:1px solid #e9e2d3;border-radius:12px;background:#fffdf8;color:#26352d;box-shadow:0 18px 60px #0008;opacity:1}
 .tour-panel-top,.tour-actions{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .tour-panel-top{color:var(--muted);font-size:.78rem;font-weight:700}
 .tour-panel-top button{border:0;background:transparent;color:inherit;font-size:1.5rem;cursor:pointer}
