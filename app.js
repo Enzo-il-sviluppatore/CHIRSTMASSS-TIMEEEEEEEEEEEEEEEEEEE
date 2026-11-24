@@ -9,7 +9,7 @@
   if(configured && window.firebase) {
     try { firebase.initializeApp(cfg.firebaseConfig); auth=firebase.auth(); db=firebase.firestore(); } catch(e) { console.error(e); }
   }
-  let pageLoaded=false, authReady=!auth, introResolved=false;
+  let pageLoaded=false, authReady=!auth, introResolved=false, guestSession=false;
   function finishIntro(){
     if(introResolved||!pageLoaded||!authReady)return;
     introResolved=true;
@@ -159,6 +159,7 @@
     await showEntryLoading();
     await load();
     await hideEntryLoading();
+    await maybeStartMandatoryTour(currentUser,guestSession);
     return currentUser;
   }
   function stampDate(value){return value&&typeof value.toDate==="function"?value.toDate():value?new Date(value):null}
@@ -237,10 +238,12 @@
     if(card&&(e.key==="Enter"||e.key===" ")){e.preventDefault();openGiftDetails(gifts.find(g=>g.id===card.dataset.giftCard))}
   });
   $("entry-guest").addEventListener("click",async()=>{
+    guestSession=true;
     $("entry-gate").hidden=true;
     await showEntryLoading();
     await load();
     await hideEntryLoading();
+    await showTour({mandatory:true});
   });
   $("entry-google").addEventListener("click",async()=>{
     const button=$("entry-google");button.disabled=true;$("entry-message").textContent="Opening Google sign-in…";
@@ -332,7 +335,7 @@
     catch(err){$("gift-save-message").textContent="Couldn't save gift: "+(err.message||"Please check your connection and Firebase settings.");$("gift-save-message").classList.remove("success");$("gift-save-message").classList.add("error");$("gift-save-message").hidden=false;}
   });
   
-  // Optional guided tour of the wishlist and its main controls.
+  // Guided tour: required once per Google account; guests see it every guest session.
   const tourSteps=[
     {target:".hero",title:"Welcome to the wishlist!",body:"This is the home page. Scroll down to explore the gifts, learn how to mark them, and find extra inspiration."},
     {target:"#wishlist",title:"Your wishlist",body:"Each card shows the gift name, price, category, and whether it is available, on hold, or bought."},
@@ -343,7 +346,7 @@
     {target:"#music-toggle",title:"Christmas music",body:"Music stays off until you press Play, choose a song, or press a music next/play control. Once a song starts, the next song can play automatically."},
     {target:"footer",title:"That's the tour!",body:"You're all set! You can reopen this guide anytime using the Site tour button."}
   ];
-  let tourIndex=0,tourHighlight=null;
+  let tourIndex=0,tourHighlight=null,mandatoryTour=false,tourUserId=null,tourResolve=null,tourPromise=null;
   function clearTourHighlight(){if(tourHighlight){tourHighlight.classList.remove("tour-highlight");tourHighlight=null}}
   function showTourStep(index){
     tourIndex=Math.max(0,Math.min(tourSteps.length-1,index));
@@ -356,13 +359,38 @@
     $("tour-next").textContent=tourIndex===tourSteps.length-1?"Finish":"Next";
     if(target){target.scrollIntoView({behavior:"smooth",block:"center"});target.classList.add("tour-highlight");tourHighlight=target}
   }
-  function closeTour(){clearTourHighlight();$("tour-panel").hidden=true}
-  $("site-tour").addEventListener("click",()=>{$("tour-panel").hidden=false;showTourStep(0)});
-  $("tour-close").addEventListener("click",closeTour);
+  function closeTour(completed=false){
+    if(mandatoryTour&&!completed)return;
+    clearTourHighlight();
+    $("tour-panel").hidden=true;
+    $("tour-close").hidden=false;
+    if(completed&&tourUserId){try{localStorage.setItem("wishlist-tour-completed-"+tourUserId,"1")}catch(e){}}
+    mandatoryTour=false;tourUserId=null;
+    if(tourResolve){const resolve=tourResolve;tourResolve=null;resolve()}
+  }
+  function showTour({mandatory=false,userId=null}={}){
+    mandatoryTour=mandatory;tourUserId=userId;
+    $("tour-close").hidden=mandatory;
+    $("tour-panel").hidden=false;showTourStep(0);
+    if(!mandatory)return Promise.resolve();
+    return new Promise(resolve=>{tourResolve=resolve});
+  }
+  async function maybeStartMandatoryTour(user,force=false){
+    if(!user)return;
+    const key="wishlist-tour-completed-"+user.uid;
+    let completed=false;try{completed=localStorage.getItem(key)==="1"}catch(e){}
+    if(completed&&!force)return;
+    if(tourPromise)return tourPromise;
+    tourPromise=showTour({mandatory:true,userId:user.uid});
+    await tourPromise;
+    tourPromise=null;
+  }
+  $("site-tour").addEventListener("click",()=>showTour({mandatory:false}));
+  $("tour-close").addEventListener("click",()=>closeTour(false));
   $("tour-back").addEventListener("click",()=>showTourStep(tourIndex-1));
-  $("tour-next").addEventListener("click",()=>{if(tourIndex===tourSteps.length-1)closeTour();else showTourStep(tourIndex+1)});
+  $("tour-next").addEventListener("click",()=>{if(tourIndex===tourSteps.length-1)closeTour(true);else showTourStep(tourIndex+1)});
 
-  if(auth)auth.onAuthStateChanged(async user=>{currentUser=user;authReady=true;finishIntro();await load();if($("admin-dialog").open){if(isAdmin())showAdmin();else{$("admin-login-form").hidden=false;$("admin-panel").hidden=true}}});
+  if(auth)auth.onAuthStateChanged(async user=>{currentUser=user;authReady=true;finishIntro();await load();if(user)await maybeStartMandatoryTour(user,guestSession);if($("admin-dialog").open){if(isAdmin())showAdmin();else{$("admin-login-form").hidden=false;$("admin-panel").hidden=true}}});
   if(!auth)load();
 
   // Audio-only playlist. Put properly licensed MP3s in /music using these filenames.
