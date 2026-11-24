@@ -14,7 +14,7 @@ service cloud.firestore {
         && request.resource.data.expiresAt > request.time
         && request.resource.data.expiresAt <= request.time + duration.value(24, "h");
     }
-    function validNewPurchase() {
+    function validNewPurchase(giftId) {
       return signedIn()
         && request.resource.data.status == "bought"
         && request.resource.data.ownerUid == request.auth.uid
@@ -28,7 +28,7 @@ service cloud.firestore {
     }
     match /giftHolds/{giftId} {
       allow read: if true;
-      allow create: if isAdmin() || validNewHold() || validNewPurchase();
+      allow create: if isAdmin() || validNewHold() || validNewPurchase(giftId);
       allow update: if isAdmin()
         || (
           signedIn()
