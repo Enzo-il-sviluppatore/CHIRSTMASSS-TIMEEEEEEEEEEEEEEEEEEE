@@ -195,7 +195,7 @@
       const st=getStatus(g),held=st.status==="held",bought=st.status==="bought",label=bought?"Bought":held?"On hold":"Available";
       const ownsHold=held&&currentUser&&st.ownerUid===currentUser.uid;
       const image=g.imageUrl?'<img src="'+escapeHTML(g.imageUrl)+'" alt="'+escapeHTML(g.name)+'" loading="lazy" onerror="this.remove()">':'<span class="gift-emoji">🎁</span>';
-      const boughtButton='<button class="maybe" data-action="bought" data-id="'+g.id+'" '+(bought?"disabled":"")+'>'+(bought?"Bought":"✓ Bought")+'</button>';
+      const boughtButton='<button class="maybe" data-action="bought" data-id="'+g.id+'" '+(bought?"disabled":"")+'>'+(bought?"✓ Bought":"Buying?")+'</button>';
       return '<article class="gift-card" data-gift-card="'+g.id+'" tabindex="0" role="button" aria-label="View details for '+escapeHTML(g.name)+'"><div class="gift-image">'+image+'</div><div class="gift-card-body"><div class="gift-meta"><span class="supplier">'+escapeHTML(g.category||"Other")+' · '+escapeHTML((g.supplier||"Gift idea")+(g.platform?" via "+g.platform:""))+'</span><span class="status '+(bought?"bought":held?"held":"available")+'">'+label+'</span></div><h3>'+escapeHTML(g.name)+'</h3><div class="gift-bottom"><strong class="gift-price">'+money(g.price)+'</strong></div><div class="gift-actions">'+boughtButton+'<button class="maybe" data-action="maybe" data-id="'+g.id+'" '+(held||bought?"disabled":"")+'>'+(held?"Reserved":bought?"Bought":"Maybe")+'</button></div>'+(held?'<p class="hold-info">Someone is thinking of buying this item · '+timeLeft(st.expiresAt)+'</p>':"")+'</div></article>';
     }).join("");
   }
@@ -331,6 +331,37 @@
     try{if(id)await db.collection("gifts").doc(id).update(payload);else await db.collection("gifts").add({...payload,createdAt:firebase.firestore.FieldValue.serverTimestamp()});toast(id?"Gift updated!":"Gift added!");$("gift-save-message").textContent=id?"Gift updated successfully!":"Gift added successfully!";$("gift-save-message").classList.remove("error");$("gift-save-message").classList.add("success");$("gift-save-message").hidden=false;$("gift-form").reset();$("gift-id").value="";$("gift-form-title").textContent="Add a gift";await load();adminList()}
     catch(err){$("gift-save-message").textContent="Couldn't save gift: "+(err.message||"Please check your connection and Firebase settings.");$("gift-save-message").classList.remove("success");$("gift-save-message").classList.add("error");$("gift-save-message").hidden=false;}
   });
+  
+  // Optional guided tour of the wishlist and its main controls.
+  const tourSteps=[
+    {target:".hero",title:"Welcome to the wishlist!",body:"This is the home page. Scroll down to explore the gifts, learn how to mark them, and find extra inspiration."},
+    {target:"#wishlist",title:"Your wishlist",body:"Each card shows the gift name, price, category, and whether it is available, on hold, or bought."},
+    {target:"#wishlist-grid",title:"Open a gift to read more",body:"Click any gift card to see its full description, extra information, current status, and product link. Click outside the details window to close it."},
+    {target:"#wishlist-grid",title:"Buying? or Maybe?",body:"Use “Buying?” if you plan to buy a gift, or “Maybe” if you're considering it. You'll need to sign in with Google. Your name is optional; if left blank, your Google email is saved. A Maybe hold lasts 24 hours."},
+    {target:".toolbar",title:"Find the right gift",body:"Search by name or description, sort by price or name, and set a minimum or maximum price. The filters below can narrow gifts by store or category."},
+    {target:"#inspiration",title:"A little inspiration",body:"The “Want some inspo?” section has extra information about interests and ideas that may help you choose."},
+    {target:"#music-toggle",title:"Christmas music",body:"Music stays off until you press Play, choose a song, or press a music next/play control. Once a song starts, the next song can play automatically."},
+    {target:"footer",title:"That's the tour!",body:"You're all set! You can reopen this guide anytime using the Site tour button."}
+  ];
+  let tourIndex=0,tourHighlight=null;
+  function clearTourHighlight(){if(tourHighlight){tourHighlight.classList.remove("tour-highlight");tourHighlight=null}}
+  function showTourStep(index){
+    tourIndex=Math.max(0,Math.min(tourSteps.length-1,index));
+    clearTourHighlight();
+    const step=tourSteps[tourIndex],target=document.querySelector(step.target);
+    $("tour-title").textContent=step.title;
+    $("tour-copy").textContent=step.body;
+    $("tour-progress").textContent="Step "+(tourIndex+1)+" of "+tourSteps.length;
+    $("tour-back").disabled=tourIndex===0;
+    $("tour-next").textContent=tourIndex===tourSteps.length-1?"Finish":"Next";
+    if(target){target.scrollIntoView({behavior:"smooth",block:"center"});target.classList.add("tour-highlight");tourHighlight=target}
+  }
+  function closeTour(){clearTourHighlight();$("tour-panel").hidden=true}
+  $("site-tour").addEventListener("click",()=>{$("tour-panel").hidden=false;showTourStep(0)});
+  $("tour-close").addEventListener("click",closeTour);
+  $("tour-back").addEventListener("click",()=>showTourStep(tourIndex-1));
+  $("tour-next").addEventListener("click",()=>{if(tourIndex===tourSteps.length-1)closeTour();else showTourStep(tourIndex+1)});
+
   if(auth)auth.onAuthStateChanged(async user=>{currentUser=user;authReady=true;finishIntro();await load();if($("admin-dialog").open){if(isAdmin())showAdmin();else{$("admin-login-form").hidden=false;$("admin-panel").hidden=true}}});
   if(!auth)load();
 
@@ -344,7 +375,7 @@
     {file:"music/God Rest Ye Merry Gentlemen (INSTRUMENTAL) - Tommee Profitt.mp3",title:"God Rest Ye Merry, Gentlemen"}
   ];
   const audio=$("christmas-audio");
-  let trackIndex=0,panelOpen=false,autoplayAttempted=false,shuffleEnabled=false,repeatEnabled=false;
+  let trackIndex=0,panelOpen=false,shuffleEnabled=false,repeatEnabled=false;
   // Keep the open music panel attached directly beneath the sticky topbar,
   // including when the topbar wraps onto multiple rows on smaller screens.
   const siteHeader=document.querySelector(".site-header");
@@ -436,17 +467,7 @@
   $("music-close").addEventListener("click",()=>{panelOpen=false;$("music-panel").hidden=true;$("mini-player").hidden=!audio.src});
   $("music-track-list").addEventListener("click",e=>{const b=e.target.closest("[data-track]");if(b)playTrack(Number(b.dataset.track),true)});
   updateTrackButtons();
-  window.addEventListener("load",()=>{
-    if(autoplayAttempted)return;
-    autoplayAttempted=true;
-    playTrack(0,true);
-  });
-  // If audible autoplay is blocked, retry after the first real visitor gesture.
-  const retryAutoplay=()=>{
-    if(audio.paused&&audio.src)startAudio().catch(()=>{});
-    document.removeEventListener("pointerdown",retryAutoplay);
-    document.removeEventListener("keydown",retryAutoplay);
-  };
-  document.addEventListener("pointerdown",retryAutoplay,{once:true});
-  document.addEventListener("keydown",retryAutoplay,{once:true});
+  // Music starts only from an explicit Play, track, or next-song button press.
+  showTrackTitle(tracks[0].title);
+  setPlayerState(false);
 })();
