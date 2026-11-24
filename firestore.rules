@@ -46,7 +46,7 @@ service cloud.firestore {
         || (
           resource.data.status == "held"
           && resource.data.expiresAt <= request.time
-          && validNewPurchase()
+          && validNewPurchase(giftId)
         );
       allow delete: if isAdmin();
     }
