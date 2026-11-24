@@ -10,12 +10,12 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
-  <link rel="stylesheet" href="styles.css?v=optional-name-account-email-16">
+  <link rel="stylesheet" href="styles.css?v=site-tour-manual-music-17">
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
   <script src="config.js"></script>
-  <script defer src="app.js?v=optional-name-account-email-16"></script>
+  <script defer src="app.js?v=site-tour-manual-music-17"></script>
 </head>
 <body>
   <div id="welcome" class="welcome-screen" aria-live="polite">
@@ -56,7 +56,7 @@
   <header class="site-header">
     <a class="brand" href="#" aria-label="Vincenzo's Christmas List home"><span>🎄</span><span>Vincenzo's <b>Christmas & Birthday List</b></span></a>
     <div class="now-playing" id="now-playing" role="button" tabindex="0" aria-label="Open music player"><span class="now-playing-icon">♫</span><span class="now-playing-label">NOW PLAYING</span><span class="marquee-window"><span class="marquee-text" id="now-playing-title">Choose a Christmas song</span></span><span class="now-playing-state" id="now-playing-state">▶</span></div><div class="topbar-player-tools" aria-label="Quick music controls"><span class="audio-time" id="top-audio-time">0:00/0:00</span><button id="top-audio-rewind" type="button" aria-label="Rewind 10 seconds" title="Rewind 10 seconds">↶10</button><button id="top-audio-skip" type="button" aria-label="Skip to next song" title="Next song">⏭</button><button id="top-audio-forward" type="button" aria-label="Fast forward 10 seconds" title="Fast forward 10 seconds">10↷</button></div>
-    <nav><a href="#wishlist">Wishlist</a><a href="#inspiration">Gift inspo</a><button id="snow-toggle" class="icon-button" type="button">❄ <span>Snow</span></button><button id="theme-toggle" class="icon-button" type="button" aria-label="Switch to dark mode" aria-pressed="false">☾ <span>Dark mode</span></button><button id="music-toggle" class="icon-button" type="button" aria-label="Open Christmas music player">♫ <span>Music</span></button></nav>
+    <nav><a href="#wishlist">Wishlist</a><a href="#inspiration">Gift inspo</a><button id="site-tour" class="icon-button" type="button">☷ <span>Site tour</span></button><button id="snow-toggle" class="icon-button" type="button">❄ <span>Snow</span></button><button id="theme-toggle" class="icon-button" type="button" aria-label="Switch to dark mode" aria-pressed="false">☾ <span>Dark mode</span></button><button id="music-toggle" class="icon-button" type="button" aria-label="Open Christmas music player">♫ <span>Music</span></button></nav>
   </header>
 
   <section id="music-panel" class="music-panel" hidden aria-label="Christmas music player">
@@ -128,6 +128,14 @@
     <form id="admin-login-form" class="admin-login"><button class="modal-close" type="button" id="admin-close" aria-label="Close">×</button><p class="eyebrow">Vincenzo only</p><h2>Admin corner</h2><p class="muted">Sign in with your authorized Google account to manage the list.</p><button id="admin-google-login" class="primary-button" type="button">Continue with Google</button><p id="admin-message" class="form-message" role="status"></p></form>
     <div id="admin-panel" hidden><div class="admin-top"><div><p class="eyebrow">Your dashboard</p><h2>Manage the wishlist</h2></div><button id="admin-panel-close" class="modal-close" type="button" aria-label="Close admin panel">×</button></div><form id="gift-form" class="gift-form"><h3 id="gift-form-title">Add a gift</h3><p id="gift-save-message" class="gift-save-message" role="alert" aria-live="polite" hidden></p><input id="gift-id" type="hidden"><label>Gift name<input id="gift-name" required maxlength="100"></label><label>Description<textarea id="gift-description" rows="3" maxlength="3000"></textarea></label><div class="form-two"><label>Price ($)<input id="gift-price" type="number" min="0" step="0.01" required></label><label>Seller / brand<input id="gift-supplier" maxlength="60" placeholder="LEGO, individual seller…"></label><label>Selling platform<input id="gift-platform" maxlength="60" placeholder="Amazon, eBay, Etsy…"></label><label>Category<select id="gift-category"><option>Electronics</option><option>Clothes</option><option>Games</option><option>Accessories</option><option>Home</option><option>Books</option><option selected>Other</option></select></label></div><label>Product link<input id="gift-url" type="url" placeholder="https://…" required></label><label>Image URL (optional)<input id="gift-image" type="url" placeholder="https://…"></label><label>Inspiration / things I like<textarea id="gift-inspo" rows="3" placeholder="Add any text you want…"></textarea></label><div class="modal-actions"><button id="gift-cancel" class="secondary-button" type="button">Clear</button><button id="gift-preview" class="secondary-button" type="button">Preview</button><button class="primary-button" type="submit">Save gift</button></div></form><h3>Dashboard</h3><div id="admin-stats" class="admin-stats"></div><h3>Current gifts <small class="muted">Drag gifts to reorder</small></h3><div id="admin-gift-list" class="admin-gift-list"></div></div>
   </dialog>
+
+  
+  <aside id="tour-panel" class="tour-panel" hidden aria-live="polite">
+    <div class="tour-panel-top"><span id="tour-progress">Step 1 of 8</span><button id="tour-close" type="button" aria-label="Close tour">×</button></div>
+    <h2 id="tour-title">Welcome to the wishlist!</h2>
+    <p id="tour-copy"></p>
+    <div class="tour-actions"><button id="tour-back" class="secondary-button" type="button" disabled>Back</button><button id="tour-next" class="primary-button" type="button">Next</button></div>
+  </aside>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
