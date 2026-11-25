@@ -338,7 +338,7 @@
   // Guided tour: required once per Google account; guests see it every guest session.
   const tourSteps=[
     {target:".hero",title:"Welcome to the wishlist!",body:"This is the home page. Scroll down to explore the gifts, learn how to mark them, and find extra inspiration."},
-    {target:"#wishlist",title:"Your wishlist",body:"Each card shows the gift name, price, category, and whether it is available, on hold, or bought."},
+    {target:"#wishlist",title:"Vincenzo's Wishlist",body:"Each card shows the gift name, price, category, and whether it is available, on hold, or bought."},
     {target:"#wishlist-grid",title:"Open a gift to read more",body:"Click any gift card to see its full description, extra information, current status, and product link. Click outside the details window to close it."},
     {target:"#wishlist-grid",title:"Buying? or Maybe?",body:"Use “Buying?” if you plan to buy a gift, or “Maybe” if you're considering it. You'll need to sign in with Google. Your name is optional; if left blank, your Google email is saved. A Maybe hold lasts 24 hours."},
     {target:".toolbar",title:"Find the right gift",body:"Search by name or description, sort by price or name, and set a minimum or maximum price. The filters below can narrow gifts by store or category."},
